@@ -16,7 +16,9 @@ import {
   BookOpen, 
   CheckCircle,
   HelpCircle,
-  FileText
+  FileText,
+  Download,
+  ChevronDown
 } from "lucide-react";
 
 interface Comment {
@@ -107,6 +109,9 @@ export default function ProjectWorkspace() {
   // Comment State
   const [newComment, setNewComment] = useState("");
   const [commenting, setCommenting] = useState(false);
+
+  // Export dropdown state
+  const [showExportDropdown, setShowExportDropdown] = useState(false);
 
   async function loadData() {
     try {
@@ -262,7 +267,7 @@ export default function ProjectWorkspace() {
             <span className="font-bold text-white truncate max-w-[200px]" title={project.name}>{project.name}</span>
           </div>
           
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 relative">
             <button
               onClick={handleTriggerAI}
               disabled={generatingAI}
@@ -271,6 +276,41 @@ export default function ProjectWorkspace() {
               <Sparkles className="h-4 w-4 animate-spin-slow" />
               {generatingAI ? "Running Local RAG..." : "Bulk AI RAG Drafting"}
             </button>
+
+            <div className="relative">
+              <button
+                onClick={() => setShowExportDropdown(!showExportDropdown)}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-white/[0.03] border border-white/5 px-4 py-2 text-xs font-bold text-white hover:bg-white/[0.08] hover:border-white/10 transition-all"
+              >
+                <Download className="h-4 w-4 text-indigo-400" /> Export Response <ChevronDown className="h-3 w-3" />
+              </button>
+              
+              {showExportDropdown && (
+                <div className="absolute right-0 mt-2 w-48 rounded-xl border border-white/5 bg-[#0f111a] p-1.5 shadow-2xl z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                  <a
+                    href={`/api/projects/${projectId}/export?format=csv`}
+                    onClick={() => setShowExportDropdown(false)}
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold text-slate-300 hover:bg-white/5 hover:text-white transition-colors"
+                  >
+                    <FileText className="h-3.5 w-3.5 text-emerald-400" /> Excel Spreadsheet (.csv)
+                  </a>
+                  <a
+                    href={`/api/projects/${projectId}/export?format=markdown`}
+                    onClick={() => setShowExportDropdown(false)}
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold text-slate-300 hover:bg-white/5 hover:text-white transition-colors"
+                  >
+                    <FileText className="h-3.5 w-3.5 text-blue-400" /> Word Document (.md)
+                  </a>
+                  <a
+                    href={`/api/projects/${projectId}/export?format=json`}
+                    onClick={() => setShowExportDropdown(false)}
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold text-slate-300 hover:bg-white/5 hover:text-white transition-colors"
+                  >
+                    <FileText className="h-3.5 w-3.5 text-purple-400" /> Structured JSON (.json)
+                  </a>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

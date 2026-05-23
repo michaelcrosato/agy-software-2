@@ -62,6 +62,26 @@ test.describe("AnswerFlow AI End-to-End User Flow Tests", () => {
     await expect(page.locator("text=Confirmed this draft with compliance team.")).toBeVisible();
   });
 
+  test("should open the export dropdown and verify export formats are present", async ({ page }) => {
+    // Navigate to projects and open review workspace
+    await page.click("text=Projects");
+    await page.click("text=Open Review Workspace");
+    await page.waitForTimeout(500);
+
+    // Verify Export button is visible
+    const exportBtn = page.locator("button:has-text('Export Response')");
+    await expect(exportBtn).toBeVisible();
+
+    // Click Export dropdown
+    await exportBtn.click();
+    await page.waitForTimeout(200);
+
+    // Check export format links are available
+    await expect(page.locator("a:has-text('Excel Spreadsheet')")).toBeVisible();
+    await expect(page.locator("a:has-text('Word Document')")).toBeVisible();
+    await expect(page.locator("a:has-text('Structured JSON')")).toBeVisible();
+  });
+
   test("should display knowledge base and approved Q&A library correctly", async ({ page }) => {
     // Navigate to Knowledge Base
     await page.click("text=Knowledge Base");
@@ -78,3 +98,4 @@ test.describe("AnswerFlow AI End-to-End User Flow Tests", () => {
     await expect(page.locator("text=Do you support Single Sign-On (SSO)?")).toBeVisible();
   });
 });
+
