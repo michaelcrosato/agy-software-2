@@ -46,3 +46,15 @@ LOOP_LOG
   - Validated complete codebase: unit tests in `tests/answerflow.test.ts` (3/3 passing), Playwright E2E tests in `tests/e2e/answerflow.spec.ts` (4/4 passing), `npm run typecheck` (passing), and `npm run lint` (passing) cleanly with zero warnings/errors.
   - Executed integrity and sandbox gates successfully, and committed all stable changes to the `main` branch.
 - **Next Step:** Expand export capabilities (e.g. custom DOCX/XLSX original file preservation) or integrate advanced contextual vector matching.
+
+## [2026-05-23T21:47:00Z] - Iteration 5
+- **Status:** Green (All build, lint, typecheck, unit tests, and Playwright E2E tests passing cleanly)
+- **Objective:** Expand export capabilities to satisfy MVP Scope requirements in docs/GOAL.md
+- **Actions:**
+  - Implemented a secure Next.js API route handler at `/api/projects/[id]/export/route.ts` that dynamically exports questionnaires and answers as CSV, Markdown (for DOCX rendering), and structured JSON.
+  - Formatted outputs gracefully: parsed relative citations and assignee experts, sanitized commas/double-quotes in CSV columns, and structured categories dynamically.
+  - Enhanced the dark-themed Review Workspace page at `app/projects/[projectId]/page.tsx` with a premium, sleek glassmorphic dropdown button to download all three export options seamlessly.
+  - Wrote a new E2E test in `tests/e2e/answerflow.spec.ts` that clicks through the Review Workspace and verifies all download links are present.
+  - Validated complete repository structure: ran `npm run typecheck` (passing), `npm run lint` (passing), unit tests in `tests/answerflow.test.ts` (passing), Playwright E2E tests in `tests/e2e/answerflow.spec.ts` (5/5 passing), and verified both integrity and local-gate scripts cleanly.
+  - Staged and committed all stable changes directly to the `main` branch to maintain absolute state hygiene.
+- **Next Step:** Implement a beautiful drag-and-drop CSV parser on the project creation page to allow instant uploading of questionnaire files, or support semantic vector matching.
