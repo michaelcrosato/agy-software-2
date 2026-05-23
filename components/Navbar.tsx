@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Sparkles, Users, Award, BookOpen, Layers } from "lucide-react";
+import { Sparkles, Users, Award, BookOpen, Layers, Cpu } from "lucide-react";
 
 export interface MockUser {
   id: string;
@@ -44,6 +44,9 @@ export default function Navbar({ onOpenChangelog }: { onOpenChangelog?: () => vo
     localStorage.setItem("feedflow_user_id", foundUser.id);
     localStorage.setItem("feedflow_user_name", foundUser.name);
     localStorage.setItem("feedflow_user_email", foundUser.email);
+    
+    // Dispatch custom event to notify all other client components to reload user details
+    window.dispatchEvent(new Event("feedflow_user_changed"));
   }, []);
 
   const switchUser = (user: MockUser) => {
@@ -94,6 +97,11 @@ export default function Navbar({ onOpenChangelog }: { onOpenChangelog?: () => vo
               Changelogs
             </Link>
           )}
+
+          <Link href="/admin" className="text-sm font-medium text-slate-300 hover:text-white transition-colors flex items-center gap-1.5">
+            <Cpu className="h-4 w-4 text-emerald-400" />
+            Admin
+          </Link>
 
           {/* User Switcher Dropdown */}
           {currentUser && (

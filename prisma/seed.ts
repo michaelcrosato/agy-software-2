@@ -15,6 +15,7 @@ async function main() {
   // 2. Create seed users
   const user1 = await prisma.user.create({
     data: {
+      id: "alex-johnson-id-seeded",
       email: "alex@example.com",
       name: "Alex Johnson",
       avatarUrl: "https://avatars.githubusercontent.com/u/1?v=4",
@@ -23,6 +24,7 @@ async function main() {
 
   const user2 = await prisma.user.create({
     data: {
+      id: "sarah-miller-id-seeded",
       email: "sarah@example.com",
       name: "Sarah Miller",
       avatarUrl: "https://avatars.githubusercontent.com/u/2?v=4",
@@ -31,6 +33,7 @@ async function main() {
 
   const user3 = await prisma.user.create({
     data: {
+      id: "michael-crosato-id-seeded",
       email: "michael@example.com",
       name: "Michael Crosato",
       avatarUrl: "https://avatars.githubusercontent.com/u/58404198?v=4",

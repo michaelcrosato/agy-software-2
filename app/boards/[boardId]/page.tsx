@@ -23,9 +23,9 @@ export default function BoardPage({ params }: { params: Promise<{ boardId: strin
     loadBoardData();
   }, [boardSlug, sort, filter]);
 
-  const loadBoardData = async () => {
+  const loadBoardData = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const res = await fetch(
         `/api/feedback/posts?boardSlug=${boardSlug}&sort=${sort}&filter=${filter}`
       );
@@ -37,9 +37,11 @@ export default function BoardPage({ params }: { params: Promise<{ boardId: strin
     } catch (e) {
       console.error("Error loading board data:", e);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
+
+  const reloadSilent = () => loadBoardData(true);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -145,8 +147,8 @@ export default function BoardPage({ params }: { params: Promise<{ boardId: strin
                   <FeedbackCard
                     key={post.id}
                     post={post}
-                    onVoteToggled={loadBoardData}
-                    onCommentAdded={loadBoardData}
+                    onVoteToggled={reloadSilent}
+                    onCommentAdded={reloadSilent}
                   />
                 ))}
               </div>
