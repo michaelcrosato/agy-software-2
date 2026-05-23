@@ -58,3 +58,17 @@ LOOP_LOG
   - Validated complete repository structure: ran `npm run typecheck` (passing), `npm run lint` (passing), unit tests in `tests/answerflow.test.ts` (passing), Playwright E2E tests in `tests/e2e/answerflow.spec.ts` (5/5 passing), and verified both integrity and local-gate scripts cleanly.
   - Staged and committed all stable changes directly to the `main` branch to maintain absolute state hygiene.
 - **Next Step:** Implement a beautiful drag-and-drop CSV parser on the project creation page to allow instant uploading of questionnaire files, or support semantic vector matching.
+
+## [2026-05-23T21:50:00Z] - Iteration 6
+- **Status:** Green (All build, lint, typecheck, unit tests, and Playwright E2E tests passing cleanly)
+- **Objective:** Implement interactive CSV parser & Column Mapper to satisfy MVP questionnaire ingestion requirements
+- **Actions:**
+  - Extended Next.js API route `app/api/projects/route.ts` to accept a structured `questions` array of objects, enabling direct ingestion of mapped questions while maintaining backward compatibility.
+  - Built a robust, pure JS/TS CSV parser directly into `app/projects/page.tsx` that seamlessly handles quote-escaping, commas, and multiline cells.
+  - Designed a premium visual drag-and-drop upload zone with instant size/row detection and visual feedback.
+  - Implemented an interactive, glassmorphic Column Mapper component with drop-down selectors for Question Text, Category, and Source Location.
+  - Added a dynamic live parse preview card displaying the first 3 mapped questions in real-time before submission.
+  - Wrote a new automated E2E test in `tests/e2e/answerflow.spec.ts` verifying file upload, column mapping selection, live preview, and successful project redirection.
+  - Validated codebase: `npm run typecheck` (passing), `npm run lint` (passing), unit tests in `tests/answerflow.test.ts` (passing), and Playwright E2E tests (6/6 passing cleanly).
+  - Executed integrity checks successfully and committed all stable changes to the `main` branch.
+- **Next Step:** Integrate vector embeddings search or advanced semantic matching using an API/SDK within the local pseudo-RAG engine.
