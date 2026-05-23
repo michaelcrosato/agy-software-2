@@ -85,3 +85,14 @@ LOOP_LOG
   - Validated repository: ran `npm run typecheck` (passing), `npm run lint` (passing), unit tests (9/9 passing), and Playwright E2E tests (7/7 passing cleanly).
   - Executed integrity checks successfully and committed all stable changes to the `main` branch.
 - **Next Step:** Integrate vector embeddings search or advanced semantic matching using an API/SDK within the local pseudo-RAG engine.
+
+## [2026-05-23T21:55:00Z] - Iteration 8
+- **Status:** Green (All build, lint, typecheck, unit tests, and Playwright E2E tests passing cleanly)
+- **Objective:** Upgrade local-first keyword RAG engine with BM25 algorithm and suffix-stripping stemming
+- **Actions:**
+  - Designed and implemented a custom suffix-stripping stemmer and regex-based tokenization pipeline in `lib/rag.ts` to handle word singular/plural forms and tenses cleanly.
+  - Replaced simple keyword count retrieval with a mathematically complete BM25 search ranking algorithm incorporating Document Length Normalization and Inverse Document Frequency (IDF).
+  - Set up two independent search pipelines (for Source Chunks and Approved Library answers) with calibrated confidence score boundaries.
+  - Successfully validated all quality and validation checks: 9/9 Vitest unit tests passing, 7/7 Playwright E2E integration tests passing, zero lint warnings/errors, and clean type-checking compilation.
+  - Staged and committed all changes directly to the `main` branch to enforce State Hygiene.
+- **Next Step:** Introduce a high-leverage product enhancement (e.g. detailed epic reporting, additional metrics, or custom DOCX original formatting preservation).
