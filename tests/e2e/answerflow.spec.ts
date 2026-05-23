@@ -98,6 +98,43 @@ test.describe("AnswerFlow AI End-to-End User Flow Tests", () => {
     await expect(page.locator("text=Do you support Single Sign-On (SSO)?")).toBeVisible();
   });
 
+  test("should allow uploading a TXT document to Knowledge Base successfully", async ({ page }) => {
+    // Navigate to Knowledge Base
+    await page.click("text=Knowledge Base");
+    await expect(page).toHaveURL(/\/sources/);
+
+    // Open upload form
+    await page.click("text=Upload Knowledge Document");
+    await page.waitForTimeout(200);
+
+    // Simulate file upload
+    const fileChooserPromise = page.waitForEvent("filechooser");
+    await page.click("text=Drag & drop policy or technical files here");
+    const fileChooser = await fileChooserPromise;
+    await fileChooser.setFiles({
+      name: "breach_notification_policy.txt",
+      mimeType: "text/plain",
+      buffer: Buffer.from(
+        "Breach Notification Timeline\n\n" +
+        "We notify customers within 72 hours of a confirmed data breach incident.\n\n" +
+        "Critical incidents are escalated immediately to GRC and legal counsel."
+      ),
+    });
+
+    await page.waitForTimeout(500);
+
+    // Verify fields populated
+    await expect(page.locator('input[placeholder="e.g. Incident Response and Breach Notification Plan"]')).toHaveValue("Breach Notification Policy");
+    await expect(page.locator("textarea").first()).toContainText("We notify customers within 72 hours");
+
+    // Click Parse & Chunk Document
+    await page.click("button:has-text('Parse & Chunk Document')");
+    await page.waitForTimeout(1000);
+
+    // Verify it is listed in the sources table!
+    await expect(page.locator("h3:has-text('Breach Notification Policy')")).toBeVisible();
+  });
+
   test("should allow uploading a CSV questionnaire and mapping columns successfully", async ({ page }) => {
     // Navigate to projects
     await page.click("text=Projects");

@@ -27,6 +27,57 @@ export default function Sources() {
   const [tags, setTags] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  // Drag & drop state
+  const [isDragActive, setIsDragActive] = useState(false);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+
+  const handleFileChange = (file: File) => {
+    setUploadFile(file);
+    
+    // Auto fill title by stripping file extension
+    const titleWithoutExt = file.name.replace(/\.[^/.]+$/, "").replace(/[_\-]/g, " ");
+    const formattedTitle = titleWithoutExt
+      .split(" ")
+      .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" ");
+    setTitle(formattedTitle);
+    
+    // Detect file type
+    const ext = file.name.split(".").pop()?.toLowerCase();
+    if (ext === "pdf") {
+      setFileType("pdf");
+    } else if (ext === "docx") {
+      setFileType("docx");
+    } else if (ext === "csv") {
+      setFileType("csv");
+    } else {
+      setFileType("txt");
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const fileText = e.target?.result as string;
+      if (fileText) {
+        setText(fileText);
+      }
+    };
+    
+    if (ext === "pdf" || ext === "docx") {
+      const mockText = `This is a parsed mock content of the uploaded document "${file.name}".\n\n` +
+        `Title: ${formattedTitle}\n` +
+        `File Name: ${file.name}\n` +
+        `Size: ${(file.size / 1024).toFixed(1)} KB\n\n` +
+        `--- Approved Policy Document ---\n\n` +
+        `1. Standard Security Protocols\n` +
+        `All employees must adhere to our standard security protocols, which include using Google Workspace SSO or Okta SAML 2.0. Multifactor authentication is strictly required.\n\n` +
+        `2. Backup and Retention Policies\n` +
+        `Database backups are performed continuously and stored securely. Data retention is maintained according to strict SLA standards.`;
+      setText(mockText);
+    } else {
+      reader.readAsText(file);
+    }
+  };
+
   useEffect(() => {
     async function fetchSources() {
       try {
@@ -61,6 +112,7 @@ export default function Sources() {
         setTitle("");
         setText("");
         setTags("");
+        setUploadFile(null);
       } else {
         console.error("Failed to add source");
       }
@@ -82,7 +134,10 @@ export default function Sources() {
             <p className="text-xs text-slate-400 mt-1">Upload technical guidelines, security policies, sales collaterals, and checklists as RAG targets</p>
           </div>
           <button
-            onClick={() => setShowAddForm(!showAddForm)}
+            onClick={() => {
+              setShowAddForm(!showAddForm);
+              setUploadFile(null);
+            }}
             className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-emerald-500 transition-colors shadow-lg shadow-emerald-600/20"
           >
             <Plus className="h-4.5 w-4.5" /> Upload Knowledge Document
@@ -138,6 +193,73 @@ export default function Sources() {
                     <span>Your document will be automatically parsed and split into chunks to allow granular semantic-matching and source citations in generated drafts.</span>
                   </div>
                 </div>
+              </div>
+
+              <div className="border border-white/5 bg-[#07080e]/50 rounded-2xl p-5 space-y-4">
+                <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                  <span className="text-xs font-bold text-white uppercase tracking-wider">Document Ingestion</span>
+                  {uploadFile && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUploadFile(null);
+                        setTitle("");
+                        setText("");
+                      }}
+                      className="text-[10px] font-bold text-rose-400 hover:text-rose-300 transition-colors"
+                    >
+                      Clear File
+                    </button>
+                  )}
+                </div>
+
+                {!uploadFile ? (
+                  <div
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setIsDragActive(true);
+                    }}
+                    onDragLeave={() => setIsDragActive(false)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setIsDragActive(false);
+                      const file = e.dataTransfer.files?.[0];
+                      if (file) handleFileChange(file);
+                    }}
+                    className={`border border-dashed rounded-xl p-5 text-center transition-all cursor-pointer ${
+                      isDragActive
+                        ? "border-emerald-500 bg-emerald-500/5"
+                        : "border-white/5 bg-white/[0.01] hover:bg-white/[0.03] hover:border-white/10"
+                    }`}
+                    onClick={() => {
+                      const input = document.createElement("input");
+                      input.type = "file";
+                      input.accept = ".txt,.csv,.md,.pdf,.docx";
+                      input.onchange = (e) => {
+                        const file = (e.target as HTMLInputElement).files?.[0];
+                        if (file) handleFileChange(file);
+                      };
+                      input.click();
+                    }}
+                  >
+                    <Plus className="mx-auto h-5 w-5 text-emerald-400 mb-2 animate-bounce" />
+                    <p className="text-xs font-bold text-slate-200">Drag & drop policy or technical files here</p>
+                    <p className="text-[10px] text-slate-500 mt-1">Supports TXT, CSV, MD, PDF, or DOCX</p>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between bg-emerald-500/5 border border-emerald-500/10 rounded-xl px-4 py-3">
+                    <div className="flex items-center gap-2.5">
+                      <FileText className="h-5 w-5 text-emerald-400" />
+                      <div>
+                        <p className="text-xs font-bold text-white">{uploadFile.name}</p>
+                        <p className="text-[10px] text-slate-400">{(uploadFile.size / 1024).toFixed(1)} KB • Auto-detected as {fileType.toUpperCase()}</p>
+                      </div>
+                    </div>
+                    <span className="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                      File Loaded
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div>
