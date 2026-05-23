@@ -23,7 +23,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const { name, customerName, dueDate, questionnaireText } = await req.json();
+    const { name, customerName, dueDate, questionnaireText, questions } = await req.json();
 
     if (!name || !customerName) {
       return NextResponse.json({ message: "Missing required fields" }, { status: 400 });
@@ -39,19 +39,44 @@ export async function POST(req: Request) {
       }
     });
 
-    // 2. Parse questionnaire text if present, or fall back to standard checklist questions
-    let rawQuestions: string[] = [];
-    if (questionnaireText && questionnaireText.trim().length > 0) {
-      // split by lines ending with ? or simple numbering
-      rawQuestions = questionnaireText
+    // 2. Parse questionnaire text if present, or structure the input questions
+    interface InputQuestion {
+      text: string;
+      category?: string;
+      sourceLocation?: string;
+    }
+
+    let parsedQuestions: InputQuestion[] = [];
+
+    if (questions && Array.isArray(questions) && questions.length > 0) {
+      parsedQuestions = questions.map((q: any) => ({
+        text: String(q.text || "").trim(),
+        category: String(q.category || "General").trim(),
+        sourceLocation: String(q.sourceLocation || "").trim()
+      }));
+    } else if (questionnaireText && questionnaireText.trim().length > 0) {
+      const rawLines = questionnaireText
         .split(/\r?\n/)
         .map((line: string) => line.trim())
         .filter((line: string) => line.length > 5 && (line.endsWith("?") || /^\d+\.?\s+/.test(line)));
+      
+      parsedQuestions = rawLines.map((text: string, i: number) => {
+        const category = text.toLowerCase().includes("sso") || text.toLowerCase().includes("background") 
+          ? "Security" 
+          : text.toLowerCase().includes("backup") || text.toLowerCase().includes("retention")
+          ? "Infrastructure"
+          : "Compliance";
+        return {
+          text,
+          category,
+          sourceLocation: `Row ${i + 1}`
+        };
+      });
     }
 
-    if (rawQuestions.length === 0) {
+    if (parsedQuestions.length === 0) {
       // Fallback/standard security questionnaire questions
-      rawQuestions = [
+      const fallbacks = [
         "Do you support Single Sign-On (SSO)?",
         "Describe your database backup frequency and encryption standards.",
         "Do you offer data hosting in the European Union (EU)?",
@@ -59,26 +84,33 @@ export async function POST(req: Request) {
         "What is your data retention policy for deleted accounts?",
         "Are employee background checks conducted annually?"
       ];
+      parsedQuestions = fallbacks.map((text, i) => {
+        const category = text.toLowerCase().includes("sso") || text.toLowerCase().includes("background") 
+          ? "Security" 
+          : text.toLowerCase().includes("backup") || text.toLowerCase().includes("retention")
+          ? "Infrastructure"
+          : "Compliance";
+        return {
+          text,
+          category,
+          sourceLocation: `Row ${i + 1}`
+        };
+      });
     }
 
     // Create seed user for assignment if needed
     const defaultUser = await prisma.user.findFirst();
 
     // 3. Create question and empty answer draft records
-    for (let i = 0; i < rawQuestions.length; i++) {
-      const category = rawQuestions[i].toLowerCase().includes("sso") || rawQuestions[i].toLowerCase().includes("background") 
-        ? "Security" 
-        : rawQuestions[i].toLowerCase().includes("backup") || rawQuestions[i].toLowerCase().includes("retention")
-        ? "Infrastructure"
-        : "Compliance";
-
+    for (let i = 0; i < parsedQuestions.length; i++) {
+      const qData = parsedQuestions[i];
       const question = await prisma.question.create({
         data: {
           projectId: project.id,
-          originalText: rawQuestions[i],
-          category,
+          originalText: qData.text,
+          category: qData.category || "General",
           answerType: "Short Text",
-          sourceLocation: `Row ${i + 1}`,
+          sourceLocation: qData.sourceLocation || `Row ${i + 1}`,
           status: "Needs Review",
           confidenceLabel: "Low",
           assignedUserId: defaultUser?.id || null,

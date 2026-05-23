@@ -97,5 +97,61 @@ test.describe("AnswerFlow AI End-to-End User Flow Tests", () => {
     await page.waitForTimeout(500);
     await expect(page.locator("text=Do you support Single Sign-On (SSO)?")).toBeVisible();
   });
+
+  test("should allow uploading a CSV questionnaire and mapping columns successfully", async ({ page }) => {
+    // Navigate to projects
+    await page.click("text=Projects");
+    await page.waitForTimeout(500);
+
+    // Open new project form
+    await page.click("text=New Response Project");
+    await page.waitForTimeout(200);
+
+    // Fill in basic details
+    await page.fill('input[placeholder="e.g. Enterprise Security Review Q3"]', "CSV Import Test Project");
+    await page.fill('input[placeholder="e.g. Acme Corporation"]', "CSV Test Corp");
+
+    // Simulate file upload
+    const fileChooserPromise = page.waitForEvent("filechooser");
+    await page.click("text=Upload CSV File");
+    const fileChooser = await fileChooserPromise;
+    await fileChooser.setFiles({
+      name: "questionnaire.csv",
+      mimeType: "text/csv",
+      buffer: Buffer.from(
+        "Question Header,Category Header,Location Header\n" +
+        "Does the system support SSO?,Security,Row 10\n" +
+        "How often are database backups performed?,Infrastructure,Row 11\n"
+      ),
+    });
+
+    await page.waitForTimeout(500);
+
+    // Verify CSV details banner is visible
+    await expect(page.locator("text=questionnaire.csv")).toBeVisible();
+    await expect(page.locator("text=2 rows detected")).toBeVisible();
+
+    // Verify Column Mapper configuration is visible
+    await expect(page.locator("text=Column Mapper Configuration")).toBeVisible();
+
+    // Map column dropdowns
+    await page.selectOption("select >> nth=0", "0"); // Question Text mapped to index 0 (Question Header)
+    await page.selectOption("select >> nth=1", "1"); // Category mapped to index 1 (Category Header)
+    await page.selectOption("select >> nth=2", "2"); // Location mapped to index 2 (Location Header)
+
+    await page.waitForTimeout(200);
+
+    // Verify Live Parse Preview matches the first mock question
+    await expect(page.locator("text=Does the system support SSO?")).toBeVisible();
+    await expect(page.locator("text=Location: Row 10")).toBeVisible();
+
+    // Click Parse & Create Project
+    await page.click("button:has-text('Parse & Create Project')");
+    await page.waitForTimeout(1000);
+
+    // Should redirect to review workspace and load questions from the CSV
+    await expect(page).toHaveURL(/\/projects\/.+/);
+    await expect(page.locator("h2:has-text('Does the system support SSO?')")).toBeVisible();
+  });
 });
 
