@@ -191,5 +191,32 @@ test.describe("AnswerFlow AI End-to-End User Flow Tests", () => {
     const selectValue = await assigneeSelect.inputValue();
     expect(selectValue).toBeTruthy();
   });
+
+  test("should allow auto-drafting a single question via RAG", async ({ page }) => {
+    // Navigate to projects and open review workspace
+    await page.click("text=Projects");
+    await page.click("text=Open Review Workspace");
+    await page.waitForTimeout(500);
+
+    // Let's clear the textarea and save it to simulate an empty draft
+    const editArea = page.locator("textarea").first();
+    await editArea.fill("");
+    await page.click("button:has-text('Save Answer Details')");
+    await page.waitForTimeout(500);
+
+    // Verify it is empty
+    await expect(editArea).toHaveValue("");
+
+    // Click "Draft with AI" button
+    await page.click("button:has-text('Draft with AI')");
+    await page.waitForTimeout(1000); // Wait for local RAG execution
+
+    // Check that the textarea is populated with the RAG answer
+    const newVal = await editArea.inputValue();
+    expect(newVal.length).toBeGreaterThan(10);
+    
+    // Verify cited evidence is visible
+    await expect(page.locator("text=Cited Evidence & Grounding")).toBeVisible();
+  });
 });
 

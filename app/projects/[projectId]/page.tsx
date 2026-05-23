@@ -100,6 +100,7 @@ export default function ProjectWorkspace() {
   const [saveToLibrary, setSaveToLibrary] = useState(true);
   const [saving, setSaving] = useState(false);
   const [generatingAI, setGeneratingAI] = useState(false);
+  const [draftingSingleAI, setDraftingSingleAI] = useState(false);
 
   // Filters State
   const [categoryFilter, setCategoryFilter] = useState("All");
@@ -200,6 +201,33 @@ export default function ProjectWorkspace() {
       console.error("Trigger AI error:", err);
     } finally {
       setGeneratingAI(false);
+    }
+  };
+
+  const handleTriggerSingleAI = async () => {
+    if (!selectedQuestion) return;
+    setDraftingSingleAI(true);
+    try {
+      const res = await fetch(`/api/questions/${selectedQuestion.id}/ai`, {
+        method: "POST",
+      });
+      if (res.ok) {
+        const updatedQuestion: Question = await res.json();
+        // Update local project state with the updated question details
+        if (project) {
+          const updatedQuestions = project.questions.map(q => 
+            q.id === updatedQuestion.id ? updatedQuestion : q
+          );
+          setProject({ ...project, questions: updatedQuestions });
+        }
+        selectQuestionDetails(updatedQuestion);
+      } else {
+        console.error("Single RAG drafting failed");
+      }
+    } catch (err) {
+      console.error("Trigger Single AI error:", err);
+    } finally {
+      setDraftingSingleAI(false);
     }
   };
 
@@ -462,7 +490,18 @@ export default function ProjectWorkspace() {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-slate-400 mb-1.5">Draft Response</label>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="block text-xs font-semibold text-slate-400">Draft Response</label>
+                        <button
+                          type="button"
+                          onClick={handleTriggerSingleAI}
+                          disabled={draftingSingleAI}
+                          className="inline-flex items-center gap-1 rounded-lg bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-1 text-[10px] font-bold text-indigo-400 hover:bg-indigo-500/20 hover:text-indigo-300 transition-colors disabled:opacity-50"
+                        >
+                          <Sparkles className={`h-3 w-3 ${draftingSingleAI ? "animate-spin" : "animate-spin-slow"}`} />
+                          {draftingSingleAI ? "Drafting..." : "Draft with AI"}
+                        </button>
+                      </div>
                       <textarea
                         required
                         rows={6}
