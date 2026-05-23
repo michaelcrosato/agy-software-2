@@ -1,0 +1,90 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id        String         @id @default(uuid())
+  email     String         @unique
+  name      String?
+  avatarUrl String?
+  createdAt DateTime       @default(now())
+  posts     FeedbackPost[]
+  votes     Vote[]
+  comments  Comment[]
+}
+
+model Board {
+  id          String         @id @default(uuid())
+  name        String
+  description String?
+  slug        String         @unique
+  createdAt   DateTime       @default(now())
+  posts       FeedbackPost[]
+}
+
+model FeedbackPost {
+  id          String    @id @default(uuid())
+  title       String
+  description String
+  status      String    @default("Under Review") // "Under Review", "Planned", "In Progress", "Completed", "Closed"
+  category    String    @default("Feature")      // "Feature", "Bug", "Improvement"
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  boardId     String
+  board       Board     @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  
+  authorId    String
+  author      User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  
+  votes       Vote[]
+  comments    Comment[]
+  
+  epicId      String?
+  epic        Epic?     @relation(fields: [epicId], references: [id], onDelete: SetNull)
+}
+
+model Vote {
+  id        String       @id @default(uuid())
+  createdAt DateTime     @default(now())
+  
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  postId    String
+  post      FeedbackPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+}
+
+model Comment {
+  id        String       @id @default(uuid())
+  content   String
+  createdAt DateTime     @default(now())
+  
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  postId    String
+  post      FeedbackPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+}
+
+model Epic {
+  id          String         @id @default(uuid())
+  name        String
+  description String?
+  createdAt   DateTime       @default(now())
+  posts       FeedbackPost[]
+}
+
+model Changelog {
+  id          String    @id @default(uuid())
+  title       String
+  content     String
+  createdAt   DateTime  @default(now())
+  publishedAt DateTime?
+}
