@@ -1,15 +1,17 @@
 import { prisma } from "../lib/prisma";
 
 async function main() {
-  console.log("Seeding FeedFlow database...");
+  console.log("Seeding AnswerFlow AI database...");
 
   // 1. Clean existing data
-  await prisma.changelog.deleteMany();
   await prisma.comment.deleteMany();
-  await prisma.vote.deleteMany();
-  await prisma.feedbackPost.deleteMany();
-  await prisma.epic.deleteMany();
-  await prisma.board.deleteMany();
+  await prisma.citation.deleteMany();
+  await prisma.answerDraft.deleteMany();
+  await prisma.question.deleteMany();
+  await prisma.responseProject.deleteMany();
+  await prisma.sourceChunk.deleteMany();
+  await prisma.sourceDocument.deleteMany();
+  await prisma.approvedAnswer.deleteMany();
   await prisma.user.deleteMany();
 
   // 2. Create seed users
@@ -42,130 +44,258 @@ async function main() {
 
   console.log("Created users:", [user1.name, user2.name, user3.name]);
 
-  // 3. Create default feedback boards
-  const coreBoard = await prisma.board.create({
+  // 3. Create Source Documents and Chunks
+  const ssoDoc = await prisma.sourceDocument.create({
     data: {
-      name: "💡 Core Features & Requests",
-      description: "Submit and vote on feature requests for the FeedFlow application core.",
-      slug: "core-features",
+      title: "Authentication and SSO Policy",
+      fileType: "pdf",
+      processingStatus: "Success",
+      approvalStatus: "Approved",
+      tags: "Security, Auth, SSO",
     },
   });
 
-  const bugsBoard = await prisma.board.create({
+  const chunkSSO1 = await prisma.sourceChunk.create({
     data: {
-      name: "🐛 Bug Reports",
-      description: "Report bugs and glitches you encounter so we can squash them.",
-      slug: "bug-reports",
+      sourceDocumentId: ssoDoc.id,
+      chunkIndex: 0,
+      pageNumber: 1,
+      sectionTitle: "SSO Providers",
+      text: "We support Google Workspace SSO, Okta, and SAML 2.0. Users can configure Single Sign-On from the workspace settings dashboard.",
     },
   });
 
-  console.log("Created boards:", [coreBoard.name, bugsBoard.name]);
-
-  // 4. Create some Epics
-  const mobileEpic = await prisma.epic.create({
+  const chunkSSO2 = await prisma.sourceChunk.create({
     data: {
-      name: "📱 Mobile App Suite",
-      description: "Requests relating to iOS and Android applications.",
+      sourceDocumentId: ssoDoc.id,
+      chunkIndex: 1,
+      pageNumber: 2,
+      sectionTitle: "Multi-Factor Authentication",
+      text: "Multi-Factor Authentication (MFA) is mandatory for all employee accounts. We support TOTP, WebAuthn, and SMS verification.",
     },
   });
 
-  const authEpic = await prisma.epic.create({
+  const dbDoc = await prisma.sourceDocument.create({
     data: {
-      name: "🔐 Security & Authentication",
-      description: "Single sign-on, multifactor security, and permission groups.",
+      title: "Disaster Recovery and Backup Policy",
+      fileType: "docx",
+      processingStatus: "Success",
+      approvalStatus: "Approved",
+      tags: "Infrastructure, Backups",
     },
   });
 
-  // 5. Create Feedback posts
-  const post1 = await prisma.feedbackPost.create({
+  const chunkDB1 = await prisma.sourceChunk.create({
     data: {
-      title: "Add support for Google Single Sign-On (SSO)",
-      description: "It would be great to allow users to sign in using their Google Workspace accounts. This would simplify onboarding and security management for enterprise teams.",
-      status: "Planned",
-      category: "Feature",
-      boardId: coreBoard.id,
-      authorId: user1.id,
-      epicId: authEpic.id,
+      sourceDocumentId: dbDoc.id,
+      chunkIndex: 0,
+      pageNumber: 1,
+      sectionTitle: "Database Snapshots",
+      text: "Our primary SQLite/Postgres databases are backed up continuously, with a full snapshot taken every 24 hours. The RPO is 4 hours and RTO is 12 hours.",
     },
   });
 
-  const post2 = await prisma.feedbackPost.create({
+  const chunkDB2 = await prisma.sourceChunk.create({
     data: {
-      title: "Mobile responsive dark mode dashboard",
-      description: "The mobile view of the dashboard has some issues with cards overflowing on small screens. Please fix the layout and make it fully responsive with glassmorphic design.",
-      status: "In Progress",
-      category: "Improvement",
-      boardId: coreBoard.id,
-      authorId: user2.id,
-      epicId: mobileEpic.id,
+      sourceDocumentId: dbDoc.id,
+      chunkIndex: 1,
+      pageNumber: 1,
+      sectionTitle: "Backup Encryption",
+      text: "All database backups are encrypted at rest using AES-256 and stored across multiple geographic availability zones.",
     },
   });
 
-  const post3 = await prisma.feedbackPost.create({
+  const residencyDoc = await prisma.sourceDocument.create({
     data: {
-      title: "Unable to upload avatars larger than 2MB",
-      description: "When I try to upload a PNG avatar that is 2.5MB, it fails silently. It should show a nice validation warning and compress the image.",
-      status: "Under Review",
-      category: "Bug",
-      boardId: bugsBoard.id,
-      authorId: user3.id,
+      title: "Data Residency and GDPR Compliance",
+      fileType: "txt",
+      processingStatus: "Success",
+      approvalStatus: "Approved",
+      tags: "Compliance, GDPR, AWS",
     },
   });
 
-  const post4 = await prisma.feedbackPost.create({
+  const chunkResidency1 = await prisma.sourceChunk.create({
     data: {
-      title: "Export feedback boards as CSV/JSON formats",
-      description: "Add an export button for board admins so they can download all feedback and votes into a structured file for offline spreadsheet analysis.",
-      status: "Completed",
-      category: "Feature",
-      boardId: coreBoard.id,
-      authorId: user3.id,
+      sourceDocumentId: residencyDoc.id,
+      chunkIndex: 0,
+      pageNumber: 1,
+      sectionTitle: "Hosting Infrastructure",
+      text: "We host all application servers and database instances in the AWS us-east-1 region (N. Virginia, USA). Custom EU-only hosting is available for enterprise tiers.",
     },
   });
 
-  console.log("Created feedback posts:", [post1.title, post2.title, post3.title, post4.title]);
+  console.log("Created Source Documents and chunks.");
 
-  // 6. Create votes
-  await prisma.vote.createMany({
-    data: [
-      { userId: user1.id, postId: post1.id },
-      { userId: user2.id, postId: post1.id },
-      { userId: user3.id, postId: post1.id }, // 3 votes for SSO
-      
-      { userId: user2.id, postId: post2.id },
-      { userId: user3.id, postId: post2.id }, // 2 votes for responsive dashboard
-      
-      { userId: user1.id, postId: post3.id }, // 1 vote for upload bug
-    ],
+  // 4. Create Response Project
+  const project = await prisma.responseProject.create({
+    data: {
+      name: "Enterprise Security Audit 2026",
+      customerName: "Acme Corp",
+      dueDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000), // 10 days out
+      status: "In Review",
+    },
   });
 
-  // 7. Create comments
+  // 5. Create Questions
+  const q1 = await prisma.question.create({
+    data: {
+      projectId: project.id,
+      originalText: "Do you support Single Sign-On (SSO)? Please list the supported identity providers.",
+      category: "Security",
+      answerType: "Short Text",
+      sourceLocation: "Row 12",
+      status: "Needs Review",
+      confidenceLabel: "High",
+      assignedUserId: user2.id,
+    },
+  });
+
+  const q2 = await prisma.question.create({
+    data: {
+      projectId: project.id,
+      originalText: "What is your database backup frequency and encryption standard?",
+      category: "Infrastructure",
+      answerType: "Long Text",
+      sourceLocation: "Row 45",
+      status: "Approved",
+      confidenceLabel: "High",
+      assignedUserId: user3.id,
+    },
+  });
+
+  const q3 = await prisma.question.create({
+    data: {
+      projectId: project.id,
+      originalText: "Do you offer data hosting in the European Union (EU)?",
+      category: "Compliance",
+      answerType: "Short Text",
+      sourceLocation: "Row 81",
+      status: "Needs Review",
+      confidenceLabel: "Medium",
+      assignedUserId: user1.id,
+    },
+  });
+
+  const q4 = await prisma.question.create({
+    data: {
+      projectId: project.id,
+      originalText: "Is ISO 27001 certification currently held by your organization?",
+      category: "Compliance",
+      answerType: "Short Text",
+      sourceLocation: "Row 99",
+      status: "Needs Source",
+      confidenceLabel: "Low",
+      assignedUserId: user2.id,
+    },
+  });
+
+  console.log("Created questions for active project.");
+
+  // 6. Create Answer Drafts
+  const draft1 = await prisma.answerDraft.create({
+    data: {
+      questionId: q1.id,
+      text: "Yes, we support Google Workspace SSO, Okta, and SAML 2.0. Users can configure Single Sign-On from the workspace settings dashboard.",
+    },
+  });
+
+  const draft2 = await prisma.answerDraft.create({
+    data: {
+      questionId: q2.id,
+      text: "Primary databases are backed up continuously, with a full snapshot taken every 24 hours. Backups are encrypted at rest using AES-256 and stored across multiple zones.",
+    },
+  });
+
+  const draft3 = await prisma.answerDraft.create({
+    data: {
+      questionId: q3.id,
+      text: "We host all application servers and database instances in AWS us-east-1 (N. Virginia, USA). Custom EU-only hosting is available for enterprise tiers.",
+    },
+  });
+
+  const draft4 = await prisma.answerDraft.create({
+    data: {
+      questionId: q4.id,
+      text: "We do not currently hold an ISO 27001 certification, but we are fully SOC 2 compliant.",
+    },
+  });
+
+  console.log("Created draft answers.");
+
+  // 7. Create Citations
+  await prisma.citation.create({
+    data: {
+      answerDraftId: draft1.id,
+      sourceChunkId: chunkSSO1.id,
+      quoteExcerpt: "We support Google Workspace SSO, Okta, and SAML 2.0. Users can configure Single Sign-On from the workspace settings dashboard.",
+    },
+  });
+
+  await prisma.citation.create({
+    data: {
+      answerDraftId: draft2.id,
+      sourceChunkId: chunkDB1.id,
+      quoteExcerpt: "Our primary SQLite/Postgres databases are backed up continuously, with a full snapshot taken every 24 hours.",
+    },
+  });
+
+  await prisma.citation.create({
+    data: {
+      answerDraftId: draft2.id,
+      sourceChunkId: chunkDB2.id,
+      quoteExcerpt: "All database backups are encrypted at rest using AES-256.",
+    },
+  });
+
+  await prisma.citation.create({
+    data: {
+      answerDraftId: draft3.id,
+      sourceChunkId: chunkResidency1.id,
+      quoteExcerpt: "We host all application servers and database instances in the AWS us-east-1 region (N. Virginia, USA). Custom EU-only hosting is available for enterprise tiers.",
+    },
+  });
+
+  console.log("Created source-cited citations.");
+
+  // 8. Create comments
   await prisma.comment.createMany({
     data: [
       {
+        questionId: q1.id,
         userId: user2.id,
-        postId: post1.id,
-        content: "Totally agree! We need SSO to rollout this board to our internal employees.",
+        body: "Looks perfect! I'll approve this once we confirm SSO configuration docs are updated.",
       },
       {
+        questionId: q3.id,
         userId: user3.id,
-        postId: post1.id,
-        content: "Adding this to our security roadmap for Sprint 2. Thanks for submitting!",
-      },
-      {
-        userId: user1.id,
-        postId: post2.id,
-        content: "Good catch, I notice this too on my iPhone 14 Pro Max. Will look fantastic in dark mode.",
+        body: "Make sure we mention the custom pricing add-on for custom hosting options in our response.",
       },
     ],
   });
 
-  // 8. Create a sample changelog
-  await prisma.changelog.create({
+  // 9. Populate Approved Answers Library
+  await prisma.approvedAnswer.create({
     data: {
-      title: "🚀 Released Core Board Export Features",
-      content: "We are thrilled to announce that admins can now export any feedback board as a CSV or JSON report! Navigate to your board settings and look for the 'Export Data' option in the sidebar. This makes it extremely easy to analyze votes and prioritize your roadmap offline.",
-      publishedAt: new Date(),
+      canonicalQuestion: "Do you support Single Sign-On (SSO)?",
+      answerText: "Yes, we support Google Workspace SSO, Okta, and SAML 2.0. Users can configure Single Sign-On from the workspace settings dashboard.",
+      category: "Security",
+      tags: "SSO, Authentication",
+      usageCount: 15,
+      lastUsedAt: new Date(),
+      approvedById: user3.id,
+    },
+  });
+
+  await prisma.approvedAnswer.create({
+    data: {
+      canonicalQuestion: "How often are database backups performed?",
+      answerText: "Our primary databases are backed up continuously, with a full snapshot taken every 24 hours. Snaphots are encrypted using AES-256.",
+      category: "Infrastructure",
+      tags: "Backup, Encryption",
+      usageCount: 8,
+      lastUsedAt: new Date(),
+      approvedById: user3.id,
     },
   });
 

@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "FeedFlow | AI-Powered Customer Feedback & Upvote Board",
-  description: "Capture, organize, and prioritize customer feedback with sleek glassmorphic aesthetics and AI-driven duplicate detection.",
+  title: "AnswerFlow AI | Intelligent RFP & Security Questionnaire Workspace",
+  description: "Accelerate B2B proposal and vendor questionnaire responses with source-cited, secure, local-first RAG drafts and seamless expert review workflows.",
 };
 
 export default function RootLayout({

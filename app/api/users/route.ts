@@ -3,17 +3,12 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   try {
-    const boards = await prisma.board.findMany({
-      include: {
-        _count: {
-          select: { posts: true }
-        }
-      },
+    const users = await prisma.user.findMany({
       orderBy: { name: "asc" }
     });
-    return NextResponse.json(boards);
+    return NextResponse.json(users);
   } catch (err: any) {
-    console.error("GET boards error:", err);
+    console.error("GET users error:", err);
     return NextResponse.json({ message: "Server error", error: err.message }, { status: 500 });
   }
 }

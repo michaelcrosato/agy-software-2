@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Sparkles, Users, Award, BookOpen, Layers, Cpu } from "lucide-react";
+import { Sparkles, Users, FileText, Library, Briefcase } from "lucide-react";
 
 export interface MockUser {
   id: string;
@@ -13,7 +13,7 @@ export interface MockUser {
 
 export const MOCK_USERS: MockUser[] = [
   {
-    id: "alex-johnson-id-seeded", // Matches seed DB IDs if possible, or we will query them in API
+    id: "alex-johnson-id-seeded",
     name: "Alex Johnson",
     email: "alex@example.com",
     avatarUrl: "https://avatars.githubusercontent.com/u/1?v=4",
@@ -32,12 +32,11 @@ export const MOCK_USERS: MockUser[] = [
   }
 ];
 
-export default function Navbar({ onOpenChangelog }: { onOpenChangelog?: () => void }) {
+export default function Navbar() {
   const [currentUser, setCurrentUser] = useState<MockUser | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   useEffect(() => {
-    // Load or initialize active user
     const savedUserId = localStorage.getItem("feedflow_user_id");
     const foundUser = MOCK_USERS.find(u => u.id === savedUserId) || MOCK_USERS[0];
     setCurrentUser(foundUser);
@@ -45,7 +44,7 @@ export default function Navbar({ onOpenChangelog }: { onOpenChangelog?: () => vo
     localStorage.setItem("feedflow_user_name", foundUser.name);
     localStorage.setItem("feedflow_user_email", foundUser.email);
     
-    // Dispatch custom event to notify all other client components to reload user details
+    // Dispatch event so sub-components can sync active user
     window.dispatchEvent(new Event("feedflow_user_changed"));
   }, []);
 
@@ -55,8 +54,6 @@ export default function Navbar({ onOpenChangelog }: { onOpenChangelog?: () => vo
     localStorage.setItem("feedflow_user_name", user.name);
     localStorage.setItem("feedflow_user_email", user.email);
     setDropdownOpen(false);
-    
-    // Dispatch custom event to notify all other client components to reload user details
     window.dispatchEvent(new Event("feedflow_user_changed"));
   };
 
@@ -65,42 +62,37 @@ export default function Navbar({ onOpenChangelog }: { onOpenChangelog?: () => vo
       <div className="mx-auto flex max-w-7xl h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Brand Logo */}
         <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-500 shadow-lg group-hover:scale-105 transition-all">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-[#6366F1] to-[#D946EF] shadow-lg shadow-indigo-500/10 group-hover:scale-105 transition-all">
             <Sparkles className="h-5 w-5 text-white" />
           </div>
           <span className="text-xl font-bold bg-gradient-to-r from-white via-slate-100 to-indigo-300 bg-clip-text text-transparent tracking-tight">
-            FeedFlow
+            AnswerFlow AI
           </span>
           <span className="hidden sm:inline-block rounded-full bg-indigo-500/10 px-2.5 py-0.5 text-xs font-medium text-indigo-400 border border-indigo-500/20">
-            AI-Native
+            RAG Response
           </span>
         </Link>
 
         {/* Navigation Elements */}
         <nav className="flex items-center gap-6">
           <Link href="/" className="text-sm font-medium text-slate-300 hover:text-white transition-colors flex items-center gap-1.5">
-            <Layers className="h-4 w-4 text-indigo-400" />
-            Boards
+            <Briefcase className="h-4 w-4 text-indigo-400" />
+            Dashboard
           </Link>
           
-          {onOpenChangelog ? (
-            <button 
-              onClick={onOpenChangelog}
-              className="text-sm font-medium text-slate-300 hover:text-white transition-colors flex items-center gap-1.5"
-            >
-              <BookOpen className="h-4 w-4 text-purple-400" />
-              Changelogs
-            </button>
-          ) : (
-            <Link href="/changelog" className="text-sm font-medium text-slate-300 hover:text-white transition-colors flex items-center gap-1.5">
-              <BookOpen className="h-4 w-4 text-purple-400" />
-              Changelogs
-            </Link>
-          )}
+          <Link href="/projects" className="text-sm font-medium text-slate-300 hover:text-white transition-colors flex items-center gap-1.5">
+            <FileText className="h-4 w-4 text-purple-400" />
+            Projects
+          </Link>
 
-          <Link href="/admin" className="text-sm font-medium text-slate-300 hover:text-white transition-colors flex items-center gap-1.5">
-            <Cpu className="h-4 w-4 text-emerald-400" />
-            Admin
+          <Link href="/sources" className="text-sm font-medium text-slate-300 hover:text-white transition-colors flex items-center gap-1.5">
+            <Users className="h-4 w-4 text-emerald-400" />
+            Knowledge Base
+          </Link>
+
+          <Link href="/library" className="text-sm font-medium text-slate-300 hover:text-white transition-colors flex items-center gap-1.5">
+            <Library className="h-4 w-4 text-pink-400" />
+            Library
           </Link>
 
           {/* User Switcher Dropdown */}
@@ -128,8 +120,8 @@ export default function Navbar({ onOpenChangelog }: { onOpenChangelog?: () => vo
               {dropdownOpen && (
                 <div className="absolute right-0 mt-2 w-64 origin-top-right rounded-xl border border-white/10 bg-[#11131f] p-1.5 shadow-2xl ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
                   <div className="px-3 py-2 border-b border-white/5 mb-1.5">
-                    <p className="text-xs font-medium text-slate-400">Pair Program & Switch Tester</p>
-                    <p className="text-[10px] text-indigo-400 font-medium">Verify multi-user upvotes instantly</p>
+                    <p className="text-xs font-medium text-slate-400">Review & Switch User Role</p>
+                    <p className="text-[10px] text-indigo-400 font-medium font-sans">Simulate routing assignments</p>
                   </div>
                   <div className="space-y-1">
                     {MOCK_USERS.map((user) => (
