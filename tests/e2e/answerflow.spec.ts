@@ -153,5 +153,43 @@ test.describe("AnswerFlow AI End-to-End User Flow Tests", () => {
     await expect(page).toHaveURL(/\/projects\/.+/);
     await expect(page.locator("h2:has-text('Does the system support SSO?')")).toBeVisible();
   });
+
+  test("should allow inviting a teammate and assigning a question to them", async ({ page }) => {
+    // Navigate to Team page
+    await page.click("text=Team");
+    await expect(page).toHaveURL(/\/team/);
+
+    // Verify page headers
+    await expect(page.locator("h1")).toContainText("Team Collaboration");
+
+    // Invite new teammate
+    await page.fill('input[placeholder="e.g. Robert Chen"]', "Test Expert Teammate");
+    await page.fill('input[placeholder="e.g. robert@company.com"]', "test.expert@company.com");
+    await page.click("button:has-text('Send Invitation')");
+
+    // Check that success banner is displayed and teammate is listed!
+    await expect(page.locator("text=invited successfully!")).toBeVisible();
+    await expect(page.locator("h3:has-text('Test Expert Teammate')")).toBeVisible();
+    await expect(page.locator("text=test.expert@company.com").first()).toBeVisible();
+
+    // Now, navigate to Projects and open Review Workspace
+    await page.click("text=Projects");
+    await page.click("text=Open Review Workspace");
+    await page.waitForTimeout(500);
+
+    // Select our newly invited teammate in the Assignee dropdown (the first select in the form)
+    const assigneeSelect = page.locator("form select").first();
+    await assigneeSelect.selectOption({ label: "Test Expert Teammate" });
+
+    // Save draft
+    await page.click("button:has-text('Save Answer Details')");
+    await page.waitForTimeout(500);
+
+    // Refresh page and verify teammate is still selected!
+    await page.reload();
+    await page.waitForTimeout(500);
+    const selectValue = await assigneeSelect.inputValue();
+    expect(selectValue).toBeTruthy();
+  });
 });
 

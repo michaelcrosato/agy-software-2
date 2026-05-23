@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Sparkles, Users, FileText, Library, Briefcase } from "lucide-react";
+import { Sparkles, Users, FileText, Library, Briefcase, Database } from "lucide-react";
 
 export interface MockUser {
   id: string;
@@ -86,13 +86,18 @@ export default function Navbar() {
           </Link>
 
           <Link href="/sources" className="text-sm font-medium text-slate-300 hover:text-white transition-colors flex items-center gap-1.5">
-            <Users className="h-4 w-4 text-emerald-400" />
+            <Database className="h-4 w-4 text-emerald-400" />
             Knowledge Base
           </Link>
 
           <Link href="/library" className="text-sm font-medium text-slate-300 hover:text-white transition-colors flex items-center gap-1.5">
             <Library className="h-4 w-4 text-pink-400" />
             Library
+          </Link>
+
+          <Link href="/team" className="text-sm font-medium text-slate-300 hover:text-white transition-colors flex items-center gap-1.5 font-sans">
+            <Users className="h-4 w-4 text-sky-400" />
+            Team
           </Link>
 
           {/* User Switcher Dropdown */}
