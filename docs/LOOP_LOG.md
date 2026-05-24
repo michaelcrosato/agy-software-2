@@ -135,3 +135,18 @@ pm run typecheck (passing),
 pm run lint (passing), Vitest unit tests (11/11 passing including new excel.test.ts), and Playwright E2E tests (10/10 passing cleanly).
   - Staged and committed all stable changes directly to the main branch to enforce State Hygiene.
 - **Next Step:** Expand RAG engine capabilities with advanced semantic ranking or support CSV answer parsing back to original spreadsheet files on export.
+
+## [2026-05-24T07:45:00Z] - Iteration 12
+- **Status:** Green (All build, lint, typecheck, unit tests, and Playwright E2E tests passing cleanly)
+- **Objective:** Implement server-side DOCX document and questionnaire parsing to satisfy MVP requirements
+- **Actions:**
+  - Installed `mammoth` package to perform precise, server-side DOCX text extraction from binary buffers.
+  - Created a Next.js POST endpoint `/api/parse-document` that extracts text from uploaded Word documents (.docx) using mammoth.
+  - Integrated Knowledge Base upload (`app/sources/page.tsx`) with `/api/parse-document` to enable real text extraction for DOCX files, replacing mock text blocks.
+  - Integrated Project questionnaire upload (`app/projects/page.tsx`) with `/api/parse-document`, utilizing client-side line-splitting to extract questions and present them in a single-column preview in the Column Mapper.
+  - Wrote a new automated Vitest suite `tests/docx.test.ts` verifying mammoth parser performance and question regex boundaries.
+  - Added an end-to-end Playwright integration test in `tests/e2e/answerflow.spec.ts` that simulates a `.docx` questionnaire upload, verifies the mapped questions, and creates a project successfully.
+  - Successfully ran typecheck, lint, unit tests (15/15 passing), and E2E Playwright tests (12/12 passing).
+  - Committed all stable features and test fixes to the `main` branch to enforce State Hygiene.
+- **Next Step:** Expand RAG engine capabilities with advanced semantic vector matching or support custom tone settings.
+
