@@ -410,5 +410,70 @@ test.describe("AnswerFlow AI End-to-End User Flow Tests", () => {
     await expect(page).toHaveURL(/\/projects\/.+/);
     await expect(page.locator("h2:has-text('Walking on imported air')")).toBeVisible();
   });
+
+  test("should allow uploading a PDF document to Knowledge Base successfully", async ({ page }) => {
+    // Navigate to Knowledge Base
+    await page.click("text=Knowledge Base");
+    await expect(page).toHaveURL(/\/sources/);
+
+    // Open upload form
+    await page.click("text=Upload Knowledge Document");
+    await page.waitForTimeout(200);
+
+    // Simulate file upload with test-questionnaire.pdf
+    const fileChooserPromise = page.waitForEvent("filechooser");
+    await page.click("text=Drag & drop policy or technical files here");
+    const fileChooser = await fileChooserPromise;
+    await fileChooser.setFiles("tests/test-questionnaire.pdf");
+
+    await page.waitForTimeout(1500);
+
+    // Verify fields populated from pdf-parse
+    await expect(page.locator('input[placeholder="e.g. Incident Response and Breach Notification Plan"]')).toHaveValue("Test Questionnaire");
+    await expect(page.locator("textarea").first()).toContainText("Does the platform support Okta or Google SSO?");
+
+    // Click Parse & Chunk Document
+    await page.click("button:has-text('Parse & Chunk Document')");
+    await page.waitForTimeout(1500);
+
+    // Verify it is listed in the sources table!
+    await expect(page.locator("h3:has-text('Test Questionnaire')")).toBeVisible();
+  });
+
+  test("should allow uploading a PDF questionnaire and extracting questions successfully", async ({ page }) => {
+    // Navigate to projects
+    await page.click("text=Projects");
+    await page.waitForTimeout(500);
+
+    // Open new project form
+    await page.click("text=New Response Project");
+    await page.waitForTimeout(200);
+
+    // Fill in basic details
+    await page.fill('input[placeholder="e.g. Enterprise Security Review Q3"]', "PDF Import Test Project");
+    await page.fill('input[placeholder="e.g. Acme Corporation"]', "PDF Test Corp");
+
+    // Simulate file upload with test-questionnaire.pdf
+    const fileChooserPromise = page.waitForEvent("filechooser");
+    await page.click("text=Upload CSV/Excel File");
+    const fileChooser = await fileChooserPromise;
+    await fileChooser.setFiles("tests/test-questionnaire.pdf");
+
+    await page.waitForTimeout(1500);
+
+    // Verify PDF details banner is visible
+    await expect(page.locator("text=test-questionnaire.pdf")).toBeVisible();
+
+    // Verify Live Parse Preview matches the extracted text from pdf-parse
+    await expect(page.locator("text=Does the platform support Okta or Google SSO?")).toBeVisible();
+
+    // Click Parse & Create Project
+    await page.click("button:has-text('Parse & Create Project')");
+    await page.waitForTimeout(1500);
+
+    // Should redirect to review workspace and load questions from the PDF
+    await expect(page).toHaveURL(/\/projects\/.+/);
+    await expect(page.locator("h2:has-text('Does the platform support Okta or Google SSO?')")).toBeVisible();
+  });
 });
 

@@ -62,11 +62,13 @@ export default function Sources() {
       }
     };
     
-    if (ext === "docx") {
-      setText("Parsing Word Document...");
+    if (ext === "docx" || ext === "pdf") {
+      // Parse Word/PDF via server endpoint
+      const fileTypeName = ext === "docx" ? "Word Document" : "PDF Document";
+      setText(`Parsing ${fileTypeName} content on the server...`);
       const formData = new FormData();
       formData.append("file", file);
-      
+
       fetch("/api/parse-document", {
         method: "POST",
         body: formData
@@ -79,24 +81,13 @@ export default function Sources() {
         if (data.text) {
           setText(data.text);
         } else {
-          setText("Word Document parsed but returned empty text.");
+          setText(`${fileTypeName} parsed but returned empty text.`);
         }
       })
       .catch(err => {
-        console.error("DOCX parsing error:", err);
-        setText("Failed to parse Word Document content. Please try manual copy-paste.");
+        console.error(`${ext.toUpperCase()} parsing error:`, err);
+        setText(`Failed to parse ${fileTypeName} content. Please try manual copy-paste.`);
       });
-    } else if (ext === "pdf") {
-      const mockText = `This is a parsed mock content of the uploaded document "${file.name}".\n\n` +
-        `Title: ${formattedTitle}\n` +
-        `File Name: ${file.name}\n` +
-        `Size: ${(file.size / 1024).toFixed(1)} KB\n\n` +
-        `--- Approved Policy Document ---\n\n` +
-        `1. Standard Security Protocols\n` +
-        `All employees must adhere to our standard security protocols, which include using Google Workspace SSO or Okta SAML 2.0. Multifactor authentication is strictly required.\n\n` +
-        `2. Backup and Retention Policies\n` +
-        `Database backups are performed continuously and stored securely. Data retention is maintained according to strict SLA standards.`;
-      setText(mockText);
     } else {
       reader.readAsText(file);
     }

@@ -163,3 +163,16 @@ pm run lint (passing), Vitest unit tests (11/11 passing including new excel.test
   - Committed stable changes directly to the `main` branch to enforce State Hygiene.
 - **Next Step:** Implement server-side PDF document and questionnaire parsing using `pdf-parse` to complete MVP requirements.
 
+## [2026-05-24T08:05:00Z] - Iteration 14
+- **Status:** Green (All build, lint, typecheck, unit tests, and Playwright E2E tests passing cleanly)
+- **Objective:** Implement server-side PDF document and questionnaire parsing to satisfy MVP requirements
+- **Actions:**
+  - Installed and integrated `pdf-parse` package along with `pdfjs-dist` worker support.
+  - Formulated dynamic ESM imports and configured standard DOMMatrix polyfills for the Next.js API route (`app/api/parse-document/route.ts`).
+  - Enabled server-side PDF text extraction in the Knowledge Base upload flow (`app/sources/page.tsx`).
+  - Added multi-column preview support for PDF questionnaires in Project Creation (`app/projects/page.tsx`).
+  - Wrote robust Vitest unit tests in `tests/pdf.test.ts` to validate question boundary regex parsing.
+  - Implemented extensive automated Playwright integration tests verifying end-to-end PDF questionnaire parsing and workspace synchronization.
+  - Ran the complete validation pipeline, confirming that all 15 E2E Playwright tests and 23 Vitest unit tests pass 100% green.
+- **Next Step:** Expand RAG engine capabilities with advanced semantic vector matching or support CSV/Excel response parsing back to original spreadsheet files on export.
+

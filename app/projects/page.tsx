@@ -109,9 +109,12 @@ export default function Projects() {
     setUploadFile(file);
     const fileName = file.name.toLowerCase();
 
-    if (fileName.endsWith(".docx")) {
+    if (fileName.endsWith(".docx") || fileName.endsWith(".pdf")) {
+      const isDocx = fileName.endsWith(".docx");
+      const fileTypeName = isDocx ? "Word Document" : "PDF Document";
+
       // Set a temporary loading state
-      setCsvHeaders(["Parsing Word Document..."]);
+      setCsvHeaders([`Parsing ${fileTypeName}...`]);
       setCsvRows([["Please wait while we extract questions...", ""]]);
       setShowColumnMapper(true);
       setMapQuestionTextIdx(0);
@@ -157,13 +160,13 @@ export default function Projects() {
           }
         } else {
           setCsvHeaders(["Error"]);
-          setCsvRows([["No text content found in Word Document.", ""]]);
+          setCsvRows([[`No text content found in ${fileTypeName}.`, ""]]);
         }
       })
       .catch(err => {
-        console.error("DOCX parsing error:", err);
+        console.error(`${isDocx ? "DOCX" : "PDF"} parsing error:`, err);
         setCsvHeaders(["Error"]);
-        setCsvRows([["Failed to parse Word Document content. Please try another file.", ""]]);
+        setCsvRows([[`Failed to parse ${fileTypeName} content. Please try another file.`, ""]]);
       });
     } else if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
       const reader = new FileReader();
@@ -458,7 +461,7 @@ export default function Projects() {
                       onClick={() => {
                         const input = document.createElement("input");
                         input.type = "file";
-                        input.accept = ".csv,.xlsx,.xls,.txt,.docx";
+                        input.accept = ".csv,.xlsx,.xls,.txt,.docx,.pdf";
                         input.onchange = (e) => {
                           const file = (e.target as HTMLInputElement).files?.[0];
                           if (file) handleFileChange(file);
@@ -496,7 +499,7 @@ export default function Projects() {
                       onClick={() => {
                         const input = document.createElement("input");
                         input.type = "file";
-                        input.accept = ".csv,.xlsx,.xls,.txt,.docx";
+                        input.accept = ".csv,.xlsx,.xls,.txt,.docx,.pdf";
                         input.onchange = (e) => {
                           const file = (e.target as HTMLInputElement).files?.[0];
                           if (file) handleFileChange(file);
@@ -505,8 +508,8 @@ export default function Projects() {
                       }}
                     >
                       <Plus className="mx-auto h-5 w-5 text-indigo-400 mb-2 animate-bounce" />
-                      <p className="text-xs font-bold text-slate-200">Drag & drop your CSV, Excel, or Word (DOCX) questionnaire here</p>
-                      <p className="text-[10px] text-slate-500 mt-1">Or click to select a file from your device (CSV, Excel, Word, TXT)</p>
+                      <p className="text-xs font-bold text-slate-200">Drag & drop your CSV, Excel, Word (DOCX), or PDF questionnaire here</p>
+                      <p className="text-[10px] text-slate-500 mt-1">Or click to select a file from your device (CSV, Excel, Word, PDF, TXT)</p>
                     </div>
 
                     <div className="relative flex py-1 items-center">
