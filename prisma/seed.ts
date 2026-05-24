@@ -190,6 +190,19 @@ async function main() {
     },
   });
 
+  const q5 = await prisma.question.create({
+    data: {
+      projectId: project.id,
+      originalText: "Do you support Single Sign-On (SSO) authentication?",
+      category: "Security",
+      answerType: "Short Text",
+      sourceLocation: "Row 2",
+      status: "Needs Review",
+      confidenceLabel: "High",
+      assignedUserId: user2.id,
+    },
+  });
+
   console.log("Created questions for active project.");
 
   // 6. Create Answer Drafts
@@ -218,6 +231,13 @@ async function main() {
     data: {
       questionId: q4.id,
       text: "We do not currently hold an ISO 27001 certification, but we are fully SOC 2 compliant.",
+    },
+  });
+
+  const draft5 = await prisma.answerDraft.create({
+    data: {
+      questionId: q5.id,
+      text: "Yes, we support Google Workspace SSO, Okta, and SAML 2.0. Users can configure Single Sign-On from the workspace settings dashboard.",
     },
   });
 

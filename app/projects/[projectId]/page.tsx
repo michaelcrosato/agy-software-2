@@ -18,8 +18,53 @@ import {
   HelpCircle,
   FileText,
   Download,
-  ChevronDown
+  ChevronDown,
+  Layers,
+  Grid,
+  ChevronUp,
+  Copy,
+  CheckCheck
 } from "lucide-react";
+
+const STOP_WORDS = new Set([
+  "what", "your", "does", "have", "with", "from", "that", "this",
+  "the", "and", "are", "for", "you", "but", "not", "they", "our",
+  "their", "who", "whom", "which", "whose", "how", "why", "when",
+  "where", "can", "could", "will", "would", "shall", "should", "may",
+  "might", "must", "been", "were", "was", "has", "had", "did", "does"
+]);
+
+function stem(word: string): string {
+  return word
+    .toLowerCase()
+    .trim()
+    .replace(/ies$/, "y")
+    .replace(/sses$/, "ss")
+    .replace(/s$/, "")
+    .replace(/ed$/, "")
+    .replace(/ing$/, "")
+    .replace(/ly$/, "");
+}
+
+function tokenize(text: string): string[] {
+  return text
+    .toLowerCase()
+    .replace(/[?.,!/():;'"\-\[\]]/g, " ")
+    .split(/\s+/)
+    .filter(word => word.length > 2);
+}
+
+function getJaccardSimilarity(q1: string, q2: string): number {
+  const t1 = new Set(tokenize(q1).filter(w => !STOP_WORDS.has(w)).map(w => stem(w)));
+  const t2 = new Set(tokenize(q2).filter(w => !STOP_WORDS.has(w)).map(w => stem(w)));
+  
+  if (t1.size === 0 || t2.size === 0) return 0;
+  
+  const intersection = new Set([...t1].filter(x => t2.has(x)));
+  const union = new Set([...t1, ...t2]);
+  
+  return intersection.size / union.size;
+}
 
 interface Comment {
   id: string;
@@ -113,6 +158,106 @@ export default function ProjectWorkspace() {
 
   // Export dropdown state
   const [showExportDropdown, setShowExportDropdown] = useState(false);
+
+  // Clustering and Bulk Actions State
+  const [viewMode, setViewMode] = useState<"list" | "clusters">("list");
+  const [expandedClusters, setExpandedClusters] = useState<Record<string, boolean>>({});
+  const [bulkPropagating, setBulkPropagating] = useState(false);
+  const [bulkApproving, setBulkApproving] = useState(false);
+
+  // Dynamic question clustering logic
+  const getClusters = (questions: Question[]) => {
+    const visited = new Set<string>();
+    const clusters: Question[][] = [];
+
+    for (let i = 0; i < questions.length; i++) {
+      const q1 = questions[i];
+      if (visited.has(q1.id)) continue;
+
+      const cluster: Question[] = [q1];
+      visited.add(q1.id);
+
+      for (let j = i + 1; j < questions.length; j++) {
+        const q2 = questions[j];
+        if (visited.has(q2.id)) continue;
+
+        const similarity = getJaccardSimilarity(q1.originalText, q2.originalText);
+        if (similarity >= 0.22) {
+          cluster.push(q2);
+          visited.add(q2.id);
+        }
+      }
+      clusters.push(cluster);
+    }
+    return clusters;
+  };
+
+  // Toggle cluster expansion
+  const toggleCluster = (clusterId: string) => {
+    setExpandedClusters(prev => ({
+      ...prev,
+      [clusterId]: !prev[clusterId]
+    }));
+  };
+
+  // Propagate answer to similar questions in cluster
+  const handlePropagateAnswer = async (cluster: Question[]) => {
+    if (!selectedQuestion) return;
+    setBulkPropagating(true);
+    try {
+      const otherQuestions = cluster.filter(q => q.id !== selectedQuestion.id);
+      for (const q of otherQuestions) {
+        await fetch(`/api/questions/${q.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            answerText: answerText,
+            saveToLibrary: false
+          })
+        });
+      }
+      await loadData();
+    } catch (err) {
+      console.error("Propagate answer error:", err);
+    } finally {
+      setBulkPropagating(false);
+    }
+  };
+
+  // Bulk approve all questions in cluster and promote them to Approved Answer Library
+  const handleBulkApproveCluster = async (cluster: Question[]) => {
+    if (!selectedQuestion) return;
+    setBulkApproving(true);
+    try {
+      for (const q of cluster) {
+        const qAnswer = q.id === selectedQuestion.id ? answerText : (q.answerDraft?.text || answerText || "");
+        await fetch(`/api/questions/${q.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            status: "Approved",
+            answerText: qAnswer,
+            saveToLibrary: true
+          })
+        });
+      }
+      await loadData();
+    } catch (err) {
+      console.error("Bulk approve cluster error:", err);
+    } finally {
+      setBulkApproving(false);
+    }
+  };
+
+  // Find cluster of the selected question
+  const getSelectedQuestionCluster = (): Question[] => {
+    if (!selectedQuestion || !project) return [];
+    const clusters = getClusters(project.questions);
+    return clusters.find(c => c.some(q => q.id === selectedQuestion.id)) || [];
+  };
+
+  const activeCluster = getSelectedQuestionCluster();
+  const isClusterMember = activeCluster.length > 1;
 
   async function loadData() {
     try {
@@ -389,65 +534,274 @@ export default function ProjectWorkspace() {
               </div>
             </div>
 
+            {/* Toggle View Mode (List vs. Clusters) */}
+            <div className="flex border-b border-white/5 p-2 gap-1 shrink-0 bg-[#090A0F]/40">
+              <button
+                type="button"
+                onClick={() => setViewMode("list")}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  viewMode === "list"
+                    ? "bg-indigo-600/10 text-indigo-400 border border-indigo-500/25"
+                    : "text-slate-400 hover:text-white hover:bg-white/[0.02]"
+                }`}
+              >
+                <Grid className="h-3.5 w-3.5" />
+                Standard List
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("clusters")}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  viewMode === "clusters"
+                    ? "bg-purple-600/10 text-purple-400 border border-purple-500/25"
+                    : "text-slate-400 hover:text-white hover:bg-white/[0.02]"
+                }`}
+                id="similarity-clusters-tab"
+              >
+                <Layers className="h-3.5 w-3.5" />
+                Similarity Clusters
+              </button>
+            </div>
+
             {/* List */}
             <div className="flex-1 overflow-y-auto divide-y divide-white/5">
-              {filteredQuestions.length === 0 ? (
-                <div className="p-8 text-center text-xs text-slate-500">
-                  No questions match filter criteria.
-                </div>
+              {viewMode === "list" ? (
+                filteredQuestions.length === 0 ? (
+                  <div className="p-8 text-center text-xs text-slate-500">
+                    No questions match filter criteria.
+                  </div>
+                ) : (
+                  filteredQuestions.map((q) => {
+                    const isSelected = selectedQuestion?.id === q.id;
+                    return (
+                      <button
+                        key={q.id}
+                        onClick={() => selectQuestionDetails(q)}
+                        className={`w-full p-4 text-left transition-colors flex flex-col gap-2 border-l-2 ${
+                          isSelected 
+                            ? "bg-indigo-500/5 border-indigo-500" 
+                            : "border-transparent hover:bg-white/[0.01]"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between w-full">
+                          <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">{q.sourceLocation}</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className={`inline-flex rounded px-1.5 py-0.5 text-[9px] font-bold border ${
+                              q.status === "Approved"
+                                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                                : q.status === "Needs Source"
+                                ? "bg-rose-500/10 text-rose-400 border-rose-500/20"
+                                : "bg-indigo-500/10 text-indigo-400 border-indigo-500/20"
+                            }`}>
+                              {q.status}
+                            </span>
+                          </div>
+                        </div>
+
+                        <p className={`text-xs leading-relaxed truncate-2-lines ${isSelected ? "text-white font-bold" : "text-slate-300 font-medium"}`}>
+                          {q.originalText}
+                        </p>
+
+                        <div className="flex items-center justify-between w-full mt-1">
+                          <span className="text-[10px] text-indigo-400 font-semibold">{q.category}</span>
+                          
+                          <div className="flex items-center gap-1">
+                            <span className={`inline-flex rounded text-[8px] px-1 font-bold ${
+                              q.confidenceLabel === "High" ? "bg-emerald-500/10 text-emerald-400" :
+                              q.confidenceLabel === "Medium" ? "bg-amber-500/10 text-amber-400" : "bg-red-500/10 text-red-400"
+                            }`}>
+                              {q.confidenceLabel} RAG
+                            </span>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })
+                )
               ) : (
-                filteredQuestions.map((q) => {
-                  const isSelected = selectedQuestion?.id === q.id;
-                  return (
-                    <button
-                      key={q.id}
-                      onClick={() => selectQuestionDetails(q)}
-                      className={`w-full p-4 text-left transition-colors flex flex-col gap-2 border-l-2 ${
-                        isSelected 
-                          ? "bg-indigo-500/5 border-indigo-500" 
-                          : "border-transparent hover:bg-white/[0.01]"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between w-full">
-                        <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">{q.sourceLocation}</span>
-                        <div className="flex items-center gap-1.5">
-                          <span className={`inline-flex rounded px-1.5 py-0.5 text-[9px] font-bold border ${
-                            q.status === "Approved"
-                              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                              : q.status === "Needs Source"
-                              ? "bg-rose-500/10 text-rose-400 border-rose-500/20"
-                              : "bg-indigo-500/10 text-indigo-400 border-indigo-500/20"
-                          }`}>
-                            {q.status}
-                          </span>
-                        </div>
+                // Clusters View
+                (() => {
+                  const clusters = getClusters(filteredQuestions);
+                  if (clusters.length === 0) {
+                    return (
+                      <div className="p-8 text-center text-xs text-slate-500">
+                        No clusters found.
                       </div>
+                    );
+                  }
+                  
+                  return clusters.map((cluster, cIdx) => {
+                    const primaryQ = cluster[0];
+                    const clusterId = primaryQ.id;
+                    const isExpanded = !!expandedClusters[clusterId];
+                    const isMulti = cluster.length > 1;
+                    
+                    if (!isMulti) {
+                      const q = primaryQ;
+                      const isSelected = selectedQuestion?.id === q.id;
+                      return (
+                        <button
+                          key={q.id}
+                          onClick={() => selectQuestionDetails(q)}
+                          className={`w-full p-4 text-left transition-colors flex flex-col gap-2 border-l-2 ${
+                            isSelected 
+                              ? "bg-[#6366F1]/5 border-[#6366F1]" 
+                              : "border-transparent hover:bg-white/[0.01]"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between w-full">
+                            <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">{q.sourceLocation}</span>
+                            <div className="flex items-center gap-1.5">
+                              <span className={`inline-flex rounded px-1.5 py-0.5 text-[9px] font-bold border ${
+                                q.status === "Approved"
+                                  ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                                  : q.status === "Needs Source"
+                                  ? "bg-rose-500/10 text-rose-400 border-rose-500/20"
+                                  : "bg-indigo-500/10 text-indigo-400 border-indigo-500/20"
+                              }`}>
+                                {q.status}
+                              </span>
+                            </div>
+                          </div>
 
-                      <p className={`text-xs leading-relaxed truncate-2-lines ${isSelected ? "text-white font-bold" : "text-slate-300 font-medium"}`}>
-                        {q.originalText}
-                      </p>
+                          <p className={`text-xs leading-relaxed truncate-2-lines ${isSelected ? "text-white font-bold" : "text-slate-300 font-medium"}`}>
+                            {q.originalText}
+                          </p>
 
-                      <div className="flex items-center justify-between w-full mt-1">
-                        <span className="text-[10px] text-indigo-400 font-semibold">{q.category}</span>
-                        
-                        <div className="flex items-center gap-1">
-                          <span className={`inline-flex rounded text-[8px] px-1 font-bold ${
-                            q.confidenceLabel === "High" ? "bg-emerald-500/10 text-emerald-400" :
-                            q.confidenceLabel === "Medium" ? "bg-amber-500/10 text-amber-400" : "bg-red-500/10 text-red-400"
-                          }`}>
-                            {q.confidenceLabel} RAG
-                          </span>
+                          <div className="flex items-center justify-between w-full mt-1">
+                            <span className="text-[10px] text-indigo-400 font-semibold">{q.category}</span>
+                            <span className={`inline-flex rounded text-[8px] px-1 font-bold ${
+                              q.confidenceLabel === "High" ? "bg-emerald-500/10 text-emerald-400" :
+                              q.confidenceLabel === "Medium" ? "bg-amber-500/10 text-amber-400" : "bg-red-500/10 text-red-400"
+                            }`}>
+                              {q.confidenceLabel} RAG
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    }
+                    
+                    const approvedCount = cluster.filter(q => q.status === "Approved").length;
+                    const isAnySelected = cluster.some(q => selectedQuestion?.id === q.id);
+                    
+                    return (
+                      <div key={clusterId} className={`flex flex-col border-b border-white/5 ${isAnySelected ? "bg-purple-500/[0.02]" : ""}`}>
+                        {/* Cluster Header */}
+                        <div className="p-4 flex flex-col gap-2">
+                          <div className="flex items-center justify-between w-full">
+                            <button
+                              type="button"
+                              onClick={() => toggleCluster(clusterId)}
+                              className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-purple-400 hover:text-purple-300 transition-colors"
+                            >
+                              <Layers className="h-3.5 w-3.5 shrink-0" />
+                              <span>Cluster ({cluster.length} Items)</span>
+                              {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                            </button>
+                            <span className="text-[9px] font-bold text-slate-500 bg-white/5 px-1.5 py-0.5 rounded">
+                              {approvedCount}/{cluster.length} Approved
+                            </span>
+                          </div>
+
+                          <p className="text-xs leading-relaxed font-bold text-slate-200">
+                            {primaryQ.originalText}
+                          </p>
+
+                          <div className="flex items-center justify-between w-full mt-1">
+                            <span className="text-[10px] text-purple-400 font-semibold">{primaryQ.category}</span>
+                            <button
+                              type="button"
+                              onClick={() => toggleCluster(clusterId)}
+                              className="text-[10px] font-semibold text-slate-400 hover:text-white transition-colors"
+                            >
+                              {isExpanded ? "Collapse List" : "Expand Similar Questions"}
+                            </button>
+                          </div>
                         </div>
+
+                        {/* Cluster Expanded Questions List */}
+                        {isExpanded && (
+                          <div className="pl-4 border-l-2 border-purple-500/20 bg-purple-950/[0.04] divide-y divide-white/5">
+                            {cluster.map((q) => {
+                              const isSelected = selectedQuestion?.id === q.id;
+                              return (
+                                <button
+                                  key={q.id}
+                                  type="button"
+                                  onClick={() => selectQuestionDetails(q)}
+                                  className={`w-full p-3 text-left transition-colors flex flex-col gap-1.5 border-l-2 ${
+                                    isSelected 
+                                      ? "bg-purple-500/5 border-purple-500 text-white font-bold" 
+                                      : "border-transparent hover:bg-white/[0.01] text-slate-300 font-medium"
+                                  }`}
+                                >
+                                  <div className="flex items-center justify-between w-full">
+                                    <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">{q.sourceLocation}</span>
+                                    <span className={`inline-flex rounded px-1 py-0.2 text-[8px] font-bold border ${
+                                      q.status === "Approved"
+                                        ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                                        : q.status === "Needs Source"
+                                        ? "bg-rose-500/10 text-rose-400 border-rose-500/20"
+                                        : "bg-indigo-500/10 text-indigo-400 border-indigo-500/20"
+                                    }`}>
+                                      {q.status}
+                                    </span>
+                                  </div>
+                                  <p className="text-[11px] leading-relaxed line-clamp-2">
+                                    {q.originalText}
+                                  </p>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
-                    </button>
-                  );
-                })
+                    );
+                  });
+                })()
               )}
             </div>
           </div>
 
           {/* RIGHT SIDE: Interactive Answer Editor & Cited Evidence */}
           <div className="flex-1 flex flex-col h-full overflow-hidden bg-[#07080e]">
+            {selectedQuestion && isClusterMember && (
+              <div className="mx-6 mt-6 rounded-2xl border border-purple-500/10 bg-purple-500/5 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-200 shrink-0">
+                <div className="flex items-start gap-2.5">
+                  <Layers className="h-4.5 w-4.5 text-purple-400 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-xs font-bold text-white">Repetitive Question Cluster Detected</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5 font-sans font-medium">
+                      This item belongs to a cluster of <span className="text-purple-400 font-bold">{activeCluster.length} similar questions</span>.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                  <button
+                    type="button"
+                    disabled={bulkPropagating || bulkApproving}
+                    onClick={() => handlePropagateAnswer(activeCluster)}
+                    className="inline-flex items-center gap-1 rounded-lg bg-white/[0.04] border border-white/10 px-3 py-1.5 text-[10px] font-bold text-white hover:bg-white/[0.08] hover:border-white/20 transition-all disabled:opacity-50"
+                    id="propagate-answer-btn"
+                  >
+                    <Copy className="h-3.5 w-3.5 text-purple-400" />
+                    {bulkPropagating ? "Propagating..." : "Propagate Answer"}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={bulkPropagating || bulkApproving}
+                    onClick={() => handleBulkApproveCluster(activeCluster)}
+                    className="inline-flex items-center gap-1 rounded-lg bg-purple-600 px-3 py-1.5 text-[10px] font-bold text-white hover:bg-purple-500 transition-all shadow-lg shadow-purple-600/20 disabled:opacity-50"
+                    id="bulk-approve-btn"
+                  >
+                    <CheckCheck className="h-3.5 w-3.5" />
+                    {bulkApproving ? "Approving All..." : "Bulk Approve Cluster"}
+                  </button>
+                </div>
+              </div>
+            )}
+
             {selectedQuestion ? (
               <div className="flex-1 flex flex-col lg:flex-row overflow-hidden divide-y lg:divide-y-0 lg:divide-x divide-white/5">
                 {/* Mid Section: Editor & Submits */}

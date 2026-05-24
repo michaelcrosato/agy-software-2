@@ -255,5 +255,53 @@ test.describe("AnswerFlow AI End-to-End User Flow Tests", () => {
     // Verify cited evidence is visible
     await expect(page.locator("text=Cited Evidence & Grounding")).toBeVisible();
   });
+
+  test("should allow question similarity clustering and bulk actions in workspace", async ({ page }) => {
+    // Capture browser console logs
+    page.on("console", msg => console.log("[BROWSER CONSOLE]", msg.text()));
+
+    // Navigate to projects and open review workspace for the seeded project specifically
+    await page.click("text=Projects");
+    await page.click("div.group:has-text('Enterprise Security Audit 2026') button:has-text('Open Review Workspace')");
+    await page.waitForTimeout(500);
+
+    // Verify Standard List is visible
+    await expect(page.locator("text=Standard List")).toBeVisible();
+    await expect(page.locator("text=Similarity Clusters")).toBeVisible();
+
+    // Toggle Similarity Clusters view
+    await page.click("#similarity-clusters-tab");
+    await page.waitForTimeout(500);
+
+    // Expand accordion on repetitive questions
+    await page.click("text=Expand Similar Questions");
+    await page.waitForTimeout(500);
+
+    // Select the first similar item inside cluster to view details
+    await page.click("text=Row 2");
+    await page.waitForTimeout(500);
+
+    // Check that the cluster detection bar is rendered
+    await expect(page.locator("text=Repetitive Question Cluster Detected")).toBeVisible();
+    await expect(page.locator("#propagate-answer-btn")).toBeVisible();
+    await expect(page.locator("#bulk-approve-btn")).toBeVisible();
+
+    // Fill the answer box with a test value
+    const answerInput = page.locator("textarea").first();
+    await answerInput.fill("SSO support includes fully integrated standard Okta and Google Workspace SSO provider configurations.");
+
+    // Trigger propagate answer
+    await page.click("#propagate-answer-btn");
+    await page.waitForTimeout(1000); // Wait for sequential updates
+
+    // Trigger bulk approve cluster
+    await page.click("#bulk-approve-btn");
+    await page.waitForTimeout(1000); // Wait for sequential approvals
+
+    // Confirm that the status is successfully marked as Approved in UI
+    await page.click("text=Standard List");
+    await page.waitForTimeout(500);
+    await expect(page.locator("span:text-is('Approved')").first()).toBeVisible();
+  });
 });
 
