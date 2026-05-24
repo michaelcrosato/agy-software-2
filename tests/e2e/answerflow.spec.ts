@@ -257,6 +257,29 @@ test.describe("AnswerFlow AI End-to-End User Flow Tests", () => {
     await expect(page.locator("text=Cited Evidence & Grounding")).toBeVisible();
   });
 
+  test("should allow selecting a custom generation tone and drafting with RAG", async ({ page }) => {
+    // Navigate to projects and open review workspace
+    await page.click("text=Projects");
+    await page.click("text=Open Review Workspace");
+    await page.waitForTimeout(500);
+
+    // Verify tone selector exists
+    const toneSelector = page.locator("#tone-selector");
+    await expect(toneSelector).toBeVisible();
+
+    // Select 'Security Questionnaire Tone'
+    await toneSelector.selectOption("Security");
+
+    // Click 'Draft with AI' button
+    await page.click("#draft-with-ai-btn");
+    await page.waitForTimeout(1000); // Wait for RAG execution
+
+    // Check that the textarea is populated with the formatted answer
+    const editArea = page.locator("textarea").first();
+    const newVal = await editArea.inputValue();
+    expect(newVal.startsWith("Security Policy Verification:")).toBe(true);
+  });
+
   test("should allow question similarity clustering and bulk actions in workspace", async ({ page }) => {
     // Capture browser console logs
     page.on("console", msg => console.log("[BROWSER CONSOLE]", msg.text()));

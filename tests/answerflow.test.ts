@@ -39,6 +39,47 @@ describe("AnswerFlow AI Local RAG Engine", () => {
     expect(result.citations.length).toBe(0);
   });
 
+  describe("RAG Synthesis Tones and Formatting Styles", () => {
+    it("should format answer in Concise style", async () => {
+      const result = await performLocalRAG("Does the platform support Okta or Google SSO?", "Concise");
+      expect(result.confidence).toBe("High");
+      const sentences = result.text.split(/(?<=[.!?])\s+/);
+      expect(sentences.length).toBeLessThanOrEqual(2);
+    });
+
+    it("should format answer in Detailed style with bullet points", async () => {
+      const result = await performLocalRAG("Does the platform support Okta or Google SSO?", "Detailed");
+      expect(result.confidence).toBe("High");
+      expect(result.text).toContain("•");
+      expect(result.text.includes("Key Details:") || result.text.includes("Our platform handles this as follows:")).toBe(true);
+    });
+
+    it("should format answer in Yes/No with explanation style", async () => {
+      const result = await performLocalRAG("Does the platform support Okta or Google SSO?", "YesNo");
+      expect(result.confidence).toBe("High");
+      expect(result.text.startsWith("Yes. ")).toBe(true);
+    });
+
+    it("should format answer in Formal style", async () => {
+      const result = await performLocalRAG("Does the platform support Okta or Google SSO?", "Formal");
+      expect(result.confidence).toBe("High");
+      expect(result.text).toContain("AnswerFlow AI is pleased to confirm that");
+    });
+
+    it("should format answer in Security Questionnaire style", async () => {
+      const result = await performLocalRAG("Does the platform support Okta or Google SSO?", "Security");
+      expect(result.confidence).toBe("High");
+      expect(result.text.startsWith("Security Policy Verification:")).toBe(true);
+    });
+
+    it("should format answer in Plain style, simplified vocabulary", async () => {
+      const result = await performLocalRAG("Does the platform support Okta or Google SSO?", "Plain");
+      expect(result.confidence).toBe("High");
+      // Clean, unformatted base check to ensure Plain style runs and retains correct contents
+      expect(result.text).toContain("Google Workspace SSO");
+    });
+  });
+
   describe("Sensitive Claim Controls Export Integration", () => {
     it("should redact unapproved sensitive questions in export by default", async () => {
       const project = await prisma.responseProject.findFirst({

@@ -9,6 +9,19 @@ export async function POST(
   try {
     const { id } = await params;
 
+    // Parse tone if present in request body or query string
+    let tone = "Concise";
+    try {
+      // Use clone to avoid locking the request stream in case of errors
+      const body = await req.clone().json();
+      if (body && body.tone) {
+        tone = body.tone;
+      }
+    } catch (e) {
+      const { searchParams } = new URL(req.url);
+      tone = searchParams.get("tone") || "Concise";
+    }
+
     // 1. Fetch the question to make sure it exists
     const question = await prisma.question.findUnique({
       where: { id },
@@ -22,7 +35,7 @@ export async function POST(
     }
 
     // 2. Perform local RAG on the question text
-    const ragResult = await performLocalRAG(question.originalText);
+    const ragResult = await performLocalRAG(question.originalText, tone);
 
     // 3. Update the question's confidence label and status
     await prisma.question.update({

@@ -35,11 +35,72 @@ function tokenize(text: string): string[] {
 }
 
 /**
+ * Helper to format the retrieved answer text based on the requested tone/mode.
+ */
+function formatAnswerByTone(rawText: string, tone: string, questionText: string): string {
+  const cleaned = rawText.trim();
+  if (cleaned.startsWith("No matching information was found")) {
+    return cleaned;
+  }
+
+  switch (tone) {
+    case "Concise": {
+      const sentences = cleaned.split(/(?<=[.!?])\s+/);
+      if (sentences.length > 1) {
+        return `${sentences[0]} ${sentences[1]}`.trim();
+      }
+      return sentences[0];
+    }
+    
+    case "Detailed": {
+      const sentences = cleaned.split(/(?<=[.!?])\s+/);
+      if (sentences.length > 2) {
+        const intro = sentences.slice(0, 2).join(" ");
+        const bullets = sentences.slice(2).map(s => `• ${s}`).join("\n");
+        return `${intro}\n\nKey Details:\n${bullets}`;
+      }
+      return `Our platform handles this as follows:\n\n• ${cleaned}`;
+    }
+    
+    case "YesNo": {
+      const lowerQ = questionText.toLowerCase();
+      const isYesNoQuestion = /^(does|do|is|are|can|has|have|will|should|could|was|were)\b/.test(lowerQ);
+      
+      if (isYesNoQuestion) {
+        const hasNegative = /\b(not|never|no|none|neither|unsupported|unable|fail|cannot)\b/i.test(cleaned);
+        const prefix = hasNegative ? "No. " : "Yes. ";
+        return `${prefix}${cleaned}`;
+      }
+      return cleaned;
+    }
+    
+    case "Formal": {
+      return `AnswerFlow AI is pleased to confirm that ${cleaned.charAt(0).toLowerCase()}${cleaned.slice(1)} Please let us know if you require further details or supporting documentation regarding this capability.`;
+    }
+    
+    case "Security": {
+      return `Security Policy Verification: ${cleaned} All controls are continuously active and validated in accordance with our organizational standards.`;
+    }
+    
+    case "Plain": {
+      return cleaned
+        .replace(/\b(subsequently|furthermore|consequently)\b/gi, "so")
+        .replace(/\b(demonstrates|exhibits)\b/gi, "shows")
+        .replace(/\b(utilizes|employs)\b/gi, "uses")
+        .replace(/\b(prior to)\b/gi, "before");
+    }
+    
+    default:
+      return cleaned;
+  }
+}
+
+/**
  * Local first RAG engine using state-of-the-art BM25 and stemming.
  * Matches keywords and stems from the question against knowledge base source chunks
  * and synthesizes a grounded answer with citations.
  */
-export async function performLocalRAG(questionText: string): Promise<RAGResult> {
+export async function performLocalRAG(questionText: string, tone?: string): Promise<RAGResult> {
   const queryTerms = tokenize(questionText).filter(w => !STOP_WORDS.has(w));
   
   if (queryTerms.length === 0) {
@@ -189,9 +250,10 @@ export async function performLocalRAG(questionText: string): Promise<RAGResult> 
   if (approvedMatches.length > 0 && approvedMatches[0].score >= 0.5) {
     const bestLib = approvedMatches[0].approved;
     const linkedChunk = matches[0]?.chunk || allChunks[0];
+    const answerText = tone ? formatAnswerByTone(bestLib.answerText, tone, questionText) : bestLib.answerText;
     
     return {
-      text: bestLib.answerText,
+      text: answerText,
       confidence: "High",
       citations: linkedChunk ? [{ chunkId: linkedChunk.id, excerpt: linkedChunk.text.substring(0, 150) }] : [],
     };
@@ -201,7 +263,8 @@ export async function performLocalRAG(questionText: string): Promise<RAGResult> 
   if (matches.length > 0 && matches[0].score >= 0.25) {
     const bestChunk = matches[0].chunk;
     const confidence = matches[0].score >= 0.75 ? "High" : "Medium";
-    const text = bestChunk.text;
+    const rawText = bestChunk.text;
+    const answerText = tone ? formatAnswerByTone(rawText, tone, questionText) : rawText;
     
     const citations = matches.slice(0, 2).map(m => ({
       chunkId: m.chunk.id,
@@ -209,7 +272,7 @@ export async function performLocalRAG(questionText: string): Promise<RAGResult> 
     }));
 
     return {
-      text,
+      text: answerText,
       confidence,
       citations,
     };

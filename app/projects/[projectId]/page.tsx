@@ -160,6 +160,7 @@ export default function ProjectWorkspace() {
   const [saving, setSaving] = useState(false);
   const [generatingAI, setGeneratingAI] = useState(false);
   const [draftingSingleAI, setDraftingSingleAI] = useState(false);
+  const [selectedTone, setSelectedTone] = useState("Concise");
 
   // Filters State
   const [categoryFilter, setCategoryFilter] = useState("All");
@@ -370,6 +371,8 @@ export default function ProjectWorkspace() {
     try {
       const res = await fetch(`/api/questions/${selectedQuestion.id}/ai`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tone: selectedTone })
       });
       if (res.ok) {
         const updatedQuestion: Question = await res.json();
@@ -921,17 +924,33 @@ export default function ProjectWorkspace() {
                     </div>
 
                     <div>
-                      <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center justify-between mb-1.5 gap-2 flex-wrap">
                         <label className="block text-xs font-semibold text-slate-400">Draft Response</label>
-                        <button
-                          type="button"
-                          onClick={handleTriggerSingleAI}
-                          disabled={draftingSingleAI}
-                          className="inline-flex items-center gap-1 rounded-lg bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-1 text-[10px] font-bold text-indigo-400 hover:bg-indigo-500/20 hover:text-indigo-300 transition-colors disabled:opacity-50"
-                        >
-                          <Sparkles className={`h-3 w-3 ${draftingSingleAI ? "animate-spin" : "animate-spin-slow"}`} />
-                          {draftingSingleAI ? "Drafting..." : "Draft with AI"}
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <select
+                            value={selectedTone}
+                            onChange={(e) => setSelectedTone(e.target.value)}
+                            className="rounded-lg border border-white/5 bg-[#121420] px-2 py-0.5 text-[10px] font-semibold text-slate-300 focus:outline-none focus:border-indigo-500 cursor-pointer"
+                            id="tone-selector"
+                          >
+                            <option value="Concise">Concise Answer</option>
+                            <option value="Detailed">Detailed Answer</option>
+                            <option value="YesNo">Yes/No with Explanation</option>
+                            <option value="Formal">Formal Proposal Tone</option>
+                            <option value="Security">Security Questionnaire Tone</option>
+                            <option value="Plain">Plain-Language Answer</option>
+                          </select>
+                          <button
+                            type="button"
+                            onClick={handleTriggerSingleAI}
+                            disabled={draftingSingleAI}
+                            className="inline-flex items-center gap-1 rounded-lg bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-1 text-[10px] font-bold text-indigo-400 hover:bg-indigo-500/20 hover:text-indigo-300 transition-colors disabled:opacity-50"
+                            id="draft-with-ai-btn"
+                          >
+                            <Sparkles className={`h-3 w-3 ${draftingSingleAI ? "animate-spin" : "animate-spin-slow"}`} />
+                            {draftingSingleAI ? "Drafting..." : "Draft with AI"}
+                          </button>
+                        </div>
                       </div>
                       <textarea
                         required
