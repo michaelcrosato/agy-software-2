@@ -32,9 +32,10 @@
     "pdf-parse": "^2.4.5",
     "react": "19.2.6",
     "react-dom": "19.2.6",
+    "read-excel-file": "^9.0.10",
     "recharts": "3.8.1",
     "tailwind-merge": "2.5.4",
-    "xlsx": "^0.18.5",
+    "write-excel-file": "^4.0.7",
     "zod": "3.23.8"
   },
   "devDependencies": {

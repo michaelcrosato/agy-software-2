@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import { FileText, Plus, Calendar, ArrowRight, ShieldCheck, HelpCircle } from "lucide-react";
-import * as XLSX from "xlsx";
+import { readSheet } from "read-excel-file/browser";
 
 
 interface Project {
@@ -105,6 +105,12 @@ export default function Projects() {
     return result;
   };
 
+  const stringifySpreadsheetCell = (value: unknown) => {
+    if (value === null || value === undefined) return "";
+    if (value instanceof Date) return value.toISOString().slice(0, 10);
+    return String(value).trim();
+  };
+
   const handleFileChange = (file: File) => {
     setUploadFile(file);
     const fileName = file.name.toLowerCase();
@@ -168,22 +174,13 @@ export default function Projects() {
         setCsvHeaders(["Error"]);
         setCsvRows([[`Failed to parse ${fileTypeName} content. Please try another file.`, ""]]);
       });
-    } else if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const ab = e.target?.result as ArrayBuffer;
-        if (!ab) return;
-
-        try {
-          const workbook = XLSX.read(new Uint8Array(ab), { type: "array" });
-          const sheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[sheetName];
-          const jsonData = XLSX.utils.sheet_to_json<any[]>(worksheet, { header: 1, defval: "" });
-
+    } else if (fileName.endsWith(".xlsx")) {
+      readSheet(file)
+        .then(jsonData => {
           if (jsonData.length > 0) {
-            const headers = (jsonData[0] as any[]).map(val => String(val || "").trim());
-            const rows = jsonData.slice(1).map(row => 
-              Array.from({ length: headers.length }, (_, i) => String(row[i] || "").trim())
+            const headers = jsonData[0].map(stringifySpreadsheetCell);
+            const rows = jsonData.slice(1).map(row =>
+              Array.from({ length: headers.length }, (_, i) => stringifySpreadsheetCell(row[i]))
             );
 
             setCsvHeaders(headers);
@@ -234,11 +231,10 @@ export default function Projects() {
             setMapSourceLocationIdx(locationIdx);
             setMapAnswerColIdx(answerIdx);
           }
-        } catch (err) {
+        })
+        .catch(err => {
           console.error("Failed to parse Excel file:", err);
-        }
-      };
-      reader.readAsArrayBuffer(file);
+        });
     } else {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -461,7 +457,7 @@ export default function Projects() {
                       onClick={() => {
                         const input = document.createElement("input");
                         input.type = "file";
-                        input.accept = ".csv,.xlsx,.xls,.txt,.docx,.pdf";
+                        input.accept = ".csv,.xlsx,.txt,.docx,.pdf";
                         input.onchange = (e) => {
                           const file = (e.target as HTMLInputElement).files?.[0];
                           if (file) handleFileChange(file);
@@ -499,7 +495,7 @@ export default function Projects() {
                       onClick={() => {
                         const input = document.createElement("input");
                         input.type = "file";
-                        input.accept = ".csv,.xlsx,.xls,.txt,.docx,.pdf";
+                        input.accept = ".csv,.xlsx,.txt,.docx,.pdf";
                         input.onchange = (e) => {
                           const file = (e.target as HTMLInputElement).files?.[0];
                           if (file) handleFileChange(file);
@@ -508,8 +504,8 @@ export default function Projects() {
                       }}
                     >
                       <Plus className="mx-auto h-5 w-5 text-indigo-400 mb-2 animate-bounce" />
-                      <p className="text-xs font-bold text-slate-200">Drag & drop your CSV, Excel, Word (DOCX), or PDF questionnaire here</p>
-                      <p className="text-[10px] text-slate-500 mt-1">Or click to select a file from your device (CSV, Excel, Word, PDF, TXT)</p>
+                      <p className="text-xs font-bold text-slate-200">Drag & drop your CSV, Excel (.xlsx), Word (DOCX), or PDF questionnaire here</p>
+                      <p className="text-[10px] text-slate-500 mt-1">Or click to select a file from your device (CSV, XLSX, Word, PDF, TXT)</p>
                     </div>
 
                     <div className="relative flex py-1 items-center">

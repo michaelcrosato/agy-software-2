@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import * as XLSX from "xlsx";
+import writeXlsxFile from "write-excel-file/node";
 import { 
   Document, 
   Packer, 
@@ -162,11 +162,8 @@ export async function GET(
     }
 
     if (format === "xlsx") {
-      const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.aoa_to_sheet([exportHeaders, ...exportRows]);
-
-      // Set premium auto-fitting column widths
-      const colWidths = exportHeaders.map((h, i) => {
+      // Set readable column widths in characters.
+      const columns = exportHeaders.map((h, i) => {
         let maxLen = h.length;
         exportRows.forEach(row => {
           const cellVal = String(row[i] || "");
@@ -174,13 +171,13 @@ export async function GET(
             maxLen = cellVal.length;
           }
         });
-        return { wch: Math.min(60, maxLen + 2) };
+        return { width: Math.min(60, maxLen + 2) };
       });
-      ws["!cols"] = colWidths;
 
-      XLSX.utils.book_append_sheet(wb, ws, "RFP Response");
-
-      const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
+      const buf = await writeXlsxFile([exportHeaders, ...exportRows], {
+        sheet: "RFP Response",
+        columns
+      }).toBuffer();
 
       return new NextResponse(buf, {
         headers: {

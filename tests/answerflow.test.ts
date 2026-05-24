@@ -120,4 +120,48 @@ describe("AnswerFlow AI Local RAG Engine", () => {
       expect(text).not.toContain('"[BLOCKED: Requires human approval before export]"');
     });
   });
+
+  describe("Advanced Local RAG Engine Enhancements", () => {
+    it("should expand synonyms and successfully match queries containing synonym terms", async () => {
+      // "residency" expands to "region", "us", "eu", "europe", etc.
+      // This will match the aws hosting chunk (which has "region" and "us-east-1" and "EU-only")
+      const result = await performLocalRAG("Where is your server residency located?");
+      expect(result.confidence).toBe("High");
+      expect(result.text).toContain("AWS us-east-1 region");
+    });
+
+    it("should track and increment usage count of matched Q&A library approved answers", async () => {
+      // 1. Get the starting usage count for Single Sign-On approved answer
+      const approvedBefore = await prisma.approvedAnswer.findFirst({
+        where: { canonicalQuestion: "Do you support Single Sign-On (SSO)?" }
+      });
+      expect(approvedBefore).toBeDefined();
+      if (!approvedBefore) return;
+      const initialCount = approvedBefore.usageCount;
+
+      // 2. Perform RAG which matches this approved answer
+      const result = await performLocalRAG("Does the platform support Okta or Google SSO?");
+      expect(result.confidence).toBe("High");
+
+      // 3. Retrieve again and verify count has incremented by 1
+      const approvedAfter = await prisma.approvedAnswer.findFirst({
+        where: { id: approvedBefore.id }
+      });
+      expect(approvedAfter).toBeDefined();
+      if (!approvedAfter) return;
+      expect(approvedAfter.usageCount).toBe(initialCount + 1);
+      expect(approvedAfter.lastUsedAt).toBeDefined();
+      expect(new Date(approvedAfter.lastUsedAt!).getTime()).toBeGreaterThan(0);
+    });
+
+    it("should match custom tones properly with synonym-boosted retrieval", async () => {
+      // Query utilizes synonym "dr" -> backup/recovery/disaster
+      const result = await performLocalRAG("What are the recovery timelines for DR?", "Concise");
+      expect(result.confidence).toBe("High");
+      expect(result.text).toContain("primary databases");
+      // Concise tone limits sentences
+      const sentences = result.text.split(/(?<=[.!?])\s+/);
+      expect(sentences.length).toBeLessThanOrEqual(2);
+    });
+  });
 });

@@ -31,7 +31,108 @@ function tokenize(text: string): string[] {
     .toLowerCase()
     .replace(/[?.,!/():;'"\-\[\]]/g, " ")
     .split(/\s+/)
-    .filter(word => word.length > 2);
+    .filter(word => word.length > 2 || word === "dr" || word === "eu" || word === "us" || word === "ip" || word === "ad");
+}
+
+const SYNONYM_MAP: Record<string, string[]> = {
+  "sso": ["single", "sign", "on", "saml", "okta", "oauth", "azuread", "idp"],
+  "single": ["sso"],
+  "sign": ["sso"],
+  "on": ["sso"],
+  "saml": ["sso", "single", "sign", "on"],
+  "okta": ["sso", "single", "sign", "on"],
+  "azuread": ["sso", "single", "sign", "on"],
+  "idp": ["sso", "single", "sign", "on"],
+  "backup": ["backups", "restore", "recovery", "disaster", "replication", "dr"],
+  "backups": ["backup"],
+  "dr": ["backup", "recovery", "disaster", "restore"],
+  "recovery": ["backup", "dr", "disaster"],
+  "disaster": ["backup", "dr", "recovery"],
+  "encryption": ["encrypt", "tls", "ssl", "aes-256", "cryptographic"],
+  "encrypt": ["encryption"],
+  "compliance": ["soc", "iso", "gdpr", "hipaa", "pci"],
+  "retention": ["retain", "purge", "delete", "archival"],
+  "hosting": ["datacenter", "aws", "azure", "gcp", "cloud", "server"],
+  "location": ["region", "residency", "eu", "us", "europe", "geographic"],
+  "residency": ["region", "hosting", "location", "eu", "us"],
+  "region": ["residency", "hosting", "location", "eu", "us"],
+};
+
+function expandSynonyms(tokens: string[]): string[] {
+  const expanded = new Set(tokens);
+  tokens.forEach(token => {
+    const syns = SYNONYM_MAP[token.toLowerCase()];
+    if (syns) {
+      syns.forEach(syn => expanded.add(syn));
+    }
+  });
+  return Array.from(expanded);
+}
+
+interface DocVector {
+  id: string;
+  terms: Record<string, number>;
+  length: number;
+}
+
+function calculateCosineSimilarity(
+  queryTerms: string[],
+  docs: DocVector[],
+  allTerms: Set<string>
+): { id: string; score: number }[] {
+  const df: Record<string, number> = {};
+  const N = docs.length;
+
+  allTerms.forEach(term => {
+    let count = 0;
+    docs.forEach(doc => {
+      if (doc.terms[term] > 0) count++;
+    });
+    df[term] = count;
+  });
+
+  const idf: Record<string, number> = {};
+  allTerms.forEach(term => {
+    const n = df[term] || 0;
+    idf[term] = Math.log((N - n + 0.5) / (n + 0.5) + 1);
+  });
+
+  const queryTfs: Record<string, number> = {};
+  queryTerms.forEach(term => {
+    if (allTerms.has(term)) {
+      queryTfs[term] = (queryTfs[term] || 0) + 1;
+    }
+  });
+
+  const queryVector: Record<string, number> = {};
+  let queryNormSq = 0;
+  Object.keys(queryTfs).forEach(term => {
+    const tf = queryTfs[term];
+    const w = tf * (idf[term] || 0);
+    queryVector[term] = w;
+    queryNormSq += w * w;
+  });
+  const queryNorm = Math.sqrt(queryNormSq);
+
+  return docs.map(doc => {
+    let dotProduct = 0;
+    let docNormSq = 0;
+
+    Object.keys(doc.terms).forEach(term => {
+      const tf = doc.terms[term];
+      const w = tf * (idf[term] || 0);
+      docNormSq += w * w;
+
+      if (queryVector[term] !== undefined) {
+        dotProduct += queryVector[term] * w;
+      }
+    });
+
+    const docNorm = Math.sqrt(docNormSq);
+    const score = (queryNorm > 0 && docNorm > 0) ? (dotProduct / (queryNorm * docNorm)) : 0;
+
+    return { id: doc.id, score };
+  });
 }
 
 /**
@@ -79,7 +180,7 @@ function formatAnswerByTone(rawText: string, tone: string, questionText: string)
     }
     
     case "Security": {
-      return `Security Policy Verification: ${cleaned} All controls are continuously active and validated in accordance with our organizational standards.`;
+      return `Security Policy Verification: ${cleaned}`;
     }
     
     case "Plain": {
@@ -101,7 +202,8 @@ function formatAnswerByTone(rawText: string, tone: string, questionText: string)
  * and synthesizes a grounded answer with citations.
  */
 export async function performLocalRAG(questionText: string, tone?: string): Promise<RAGResult> {
-  const queryTerms = tokenize(questionText).filter(w => !STOP_WORDS.has(w));
+  const rawQueryTerms = tokenize(questionText).filter(w => !STOP_WORDS.has(w));
+  const queryTerms = expandSynonyms(rawQueryTerms);
   
   if (queryTerms.length === 0) {
     return {
@@ -113,6 +215,12 @@ export async function performLocalRAG(questionText: string, tone?: string): Prom
 
   // 1. Load data from the database
   const allChunks = await prisma.sourceChunk.findMany({
+    where: {
+      sourceDocument: {
+        processingStatus: "Success",
+        approvalStatus: "Approved",
+      },
+    },
     include: {
       sourceDocument: true,
     },
@@ -120,17 +228,33 @@ export async function performLocalRAG(questionText: string, tone?: string): Prom
 
   const allApproved = await prisma.approvedAnswer.findMany();
 
-  // 2. Score source chunks using BM25
+  // 2. Score source chunks using BM25 and TF-IDF Cosine Similarity
   const N = allChunks.length;
+  const allTerms = new Set<string>();
+
   const chunkDocs = allChunks.map(chunk => {
     const tokens = tokenize(chunk.text);
+    const stems = tokens.map(t => stem(t));
+    const terms: Record<string, number> = {};
+    stems.forEach(s => {
+      terms[s] = (terms[s] || 0) + 1;
+      allTerms.add(s);
+    });
     return {
+      id: chunk.id,
       chunk,
       tokens,
-      stems: tokens.map(t => stem(t)),
+      stems,
+      terms,
       length: tokens.length || 1,
     };
   });
+
+  const queryStems = queryTerms.map(t => stem(t));
+  queryStems.forEach(s => allTerms.add(s));
+
+  const cosineMatches = calculateCosineSimilarity(queryStems, chunkDocs, allTerms);
+  const cosineScoresMap = new Map(cosineMatches.map(m => [m.id, m.score]));
 
   const totalLength = chunkDocs.reduce((sum, d) => sum + d.length, 0);
   const avgdl = N > 0 ? totalLength / N : 1;
@@ -174,23 +298,41 @@ export async function performLocalRAG(questionText: string, tone?: string): Prom
       }
     });
 
-    return { chunk: doc.chunk, score };
+    const cosineScore = cosineScoresMap.get(doc.id) || 0;
+    const combinedScore = score + 1.5 * cosineScore;
+
+    return { chunk: doc.chunk, score: combinedScore, bm25Score: score, cosineScore };
   })
   .filter(item => item.score > 0)
   .sort((a, b) => b.score - a.score);
 
-  // 3. Score approved answers library using BM25
+  // 3. Score approved answers library using BM25 and TF-IDF Cosine Similarity
   const N_lib = allApproved.length;
+  const allTerms_lib = new Set<string>();
+
   const approvedDocs = allApproved.map(approved => {
     const combinedText = `${approved.canonicalQuestion} ${approved.answerText}`;
     const tokens = tokenize(combinedText);
+    const stems = tokens.map(t => stem(t));
+    const terms: Record<string, number> = {};
+    stems.forEach(s => {
+      terms[s] = (terms[s] || 0) + 1;
+      allTerms_lib.add(s);
+    });
     return {
+      id: approved.id,
       approved,
       tokens,
-      stems: tokens.map(t => stem(t)),
+      stems,
+      terms,
       length: tokens.length || 1,
     };
   });
+
+  queryStems.forEach(s => allTerms_lib.add(s));
+
+  const cosineMatches_lib = calculateCosineSimilarity(queryStems, approvedDocs, allTerms_lib);
+  const cosineScoresMap_lib = new Map(cosineMatches_lib.map(m => [m.id, m.score]));
 
   const totalLength_lib = approvedDocs.reduce((sum, d) => sum + d.length, 0);
   const avgdl_lib = N_lib > 0 ? totalLength_lib / N_lib : 1;
@@ -231,7 +373,10 @@ export async function performLocalRAG(questionText: string, tone?: string): Prom
       }
     });
 
-    return { approved: doc.approved, score };
+    const cosineScore = cosineScoresMap_lib.get(doc.id) || 0;
+    const combinedScore = score + 1.5 * cosineScore;
+
+    return { approved: doc.approved, score: combinedScore, bm25Score: score, cosineScore };
   })
   .filter(item => item.score > 0)
   .sort((a, b) => b.score - a.score);
@@ -239,10 +384,10 @@ export async function performLocalRAG(questionText: string, tone?: string): Prom
   // Debug logs for calibration
   console.log(`[RAG DEBUG] Question: "${questionText}"`);
   if (approvedMatches.length > 0) {
-    console.log(`[RAG DEBUG] Top Library Match Score: ${approvedMatches[0].score} for "${approvedMatches[0].approved.canonicalQuestion}"`);
+    console.log(`[RAG DEBUG] Top Library Match Score: ${approvedMatches[0].score} (BM25: ${approvedMatches[0].bm25Score}, Cosine: ${approvedMatches[0].cosineScore}) for "${approvedMatches[0].approved.canonicalQuestion}"`);
   }
   if (matches.length > 0) {
-    console.log(`[RAG DEBUG] Top Chunk Match Score: ${matches[0].score} for "${matches[0].chunk.sectionTitle || 'Chunk'}"`);
+    console.log(`[RAG DEBUG] Top Chunk Match Score: ${matches[0].score} (BM25: ${matches[0].bm25Score}, Cosine: ${matches[0].cosineScore}) for "${matches[0].chunk.sectionTitle || 'Chunk'}"`);
   }
 
   // 4. Decision logic: Check Library Match first
@@ -252,6 +397,14 @@ export async function performLocalRAG(questionText: string, tone?: string): Prom
     const linkedChunk = matches[0]?.chunk || allChunks[0];
     const answerText = tone ? formatAnswerByTone(bestLib.answerText, tone, questionText) : bestLib.answerText;
     
+    await prisma.approvedAnswer.update({
+      where: { id: bestLib.id },
+      data: {
+        usageCount: { increment: 1 },
+        lastUsedAt: new Date(),
+      }
+    });
+
     return {
       text: answerText,
       confidence: "High",

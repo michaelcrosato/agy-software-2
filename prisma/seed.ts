@@ -310,7 +310,7 @@ async function main() {
   await prisma.approvedAnswer.create({
     data: {
       canonicalQuestion: "How often are database backups performed?",
-      answerText: "Our primary databases are backed up continuously, with a full snapshot taken every 24 hours. Snaphots are encrypted using AES-256.",
+      answerText: "Our primary databases are backed up continuously, with a full snapshot taken every 24 hours. Snapshots are encrypted using AES-256.",
       category: "Infrastructure",
       tags: "Backup, Encryption",
       usageCount: 8,
