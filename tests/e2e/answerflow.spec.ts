@@ -78,6 +78,7 @@ test.describe("AnswerFlow AI End-to-End User Flow Tests", () => {
 
     // Check export format links are available
     await expect(page.locator("a:has-text('Excel Spreadsheet')")).toBeVisible();
+    await expect(page.locator("a:has-text('Comma-Separated Values')")).toBeVisible();
     await expect(page.locator("a:has-text('Word Document')")).toBeVisible();
     await expect(page.locator("a:has-text('Structured JSON')")).toBeVisible();
   });
@@ -150,7 +151,7 @@ test.describe("AnswerFlow AI End-to-End User Flow Tests", () => {
 
     // Simulate file upload
     const fileChooserPromise = page.waitForEvent("filechooser");
-    await page.click("text=Upload CSV File");
+    await page.click("text=Upload CSV/Excel File");
     const fileChooser = await fileChooserPromise;
     await fileChooser.setFiles({
       name: "questionnaire.csv",

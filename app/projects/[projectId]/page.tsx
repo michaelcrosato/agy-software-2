@@ -461,11 +461,18 @@ export default function ProjectWorkspace() {
               {showExportDropdown && (
                 <div className="absolute right-0 mt-2 w-48 rounded-xl border border-white/5 bg-[#0f111a] p-1.5 shadow-2xl z-50 animate-in fade-in slide-in-from-top-2 duration-150">
                   <a
+                    href={`/api/projects/${projectId}/export?format=xlsx`}
+                    onClick={() => setShowExportDropdown(false)}
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold text-slate-300 hover:bg-white/5 hover:text-white transition-colors"
+                  >
+                    <FileText className="h-3.5 w-3.5 text-emerald-400" /> Excel Spreadsheet (.xlsx)
+                  </a>
+                  <a
                     href={`/api/projects/${projectId}/export?format=csv`}
                     onClick={() => setShowExportDropdown(false)}
                     className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold text-slate-300 hover:bg-white/5 hover:text-white transition-colors"
                   >
-                    <FileText className="h-3.5 w-3.5 text-emerald-400" /> Excel Spreadsheet (.csv)
+                    <FileText className="h-3.5 w-3.5 text-teal-400" /> Comma-Separated Values (.csv)
                   </a>
                   <a
                     href={`/api/projects/${projectId}/export?format=markdown`}

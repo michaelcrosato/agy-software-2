@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import * as XLSX from "xlsx";
+
 
 export async function GET(
   req: Request,
@@ -44,16 +46,15 @@ export async function GET(
 
     // 2. Export based on format
     if (format === "csv") {
-      // Create CSV content
       const headers = ["Question Location", "Question Text", "Category", "Status", "RAG Confidence", "Assignee", "Drafted Answer"];
-      
+
       const rows = project.questions.map(q => {
-        const location = q.sourceLocation || "";
+        const location = (q.sourceLocation || "").replace(/"/g, '""');
         const text = q.originalText.replace(/"/g, '""');
-        const cat = q.category;
+        const cat = q.category.replace(/"/g, '""');
         const status = q.status;
         const confidence = q.confidenceLabel;
-        const assignee = q.assignedUser?.name || "Unassigned";
+        const assignee = (q.assignedUser?.name || "Unassigned").replace(/"/g, '""');
         const answer = (q.answerDraft?.text || "").replace(/"/g, '""');
 
         return `"${location}","${text}","${cat}","${status}","${confidence}","${assignee}","${answer}"`;
@@ -65,6 +66,48 @@ export async function GET(
         headers: {
           "Content-Type": "text/csv; charset=utf-8",
           "Content-Disposition": `attachment; filename="${safeFileName}_export.csv"`
+        }
+      });
+    }
+
+    if (format === "xlsx") {
+      const wb = XLSX.utils.book_new();
+
+      const headers = ["Question Location", "Question Text", "Category", "Status", "RAG Confidence", "Assignee", "Drafted Answer"];
+
+      const rows = project.questions.map(q => [
+        q.sourceLocation || "",
+        q.originalText,
+        q.category,
+        q.status,
+        q.confidenceLabel,
+        q.assignedUser?.name || "Unassigned",
+        q.answerDraft?.text || ""
+      ]);
+
+      const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+
+      // Set premium auto-fitting column widths
+      const colWidths = headers.map((h, i) => {
+        let maxLen = h.length;
+        rows.forEach(row => {
+          const cellVal = String(row[i] || "");
+          if (cellVal.length > maxLen) {
+            maxLen = cellVal.length;
+          }
+        });
+        return { wch: Math.min(60, maxLen + 2) };
+      });
+      ws["!cols"] = colWidths;
+
+      XLSX.utils.book_append_sheet(wb, ws, "RFP Response");
+
+      const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
+
+      return new NextResponse(buf, {
+        headers: {
+          "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          "Content-Disposition": `attachment; filename="${safeFileName}_export.xlsx"`
         }
       });
     }

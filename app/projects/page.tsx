@@ -4,6 +4,8 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import { FileText, Plus, Calendar, ArrowRight, ShieldCheck, HelpCircle } from "lucide-react";
+import * as XLSX from "xlsx";
+
 
 interface Project {
   id: string;
@@ -104,55 +106,120 @@ export default function Projects() {
 
   const handleFileChange = (file: File) => {
     setUploadFile(file);
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const text = e.target?.result as string;
-      if (!text) return;
+    const fileName = file.name.toLowerCase();
 
-      const parsed = parseCSV(text);
-      if (parsed.length > 0) {
-        const headers = parsed[0];
-        const rows = parsed.slice(1);
-        setCsvHeaders(headers);
-        setCsvRows(rows);
-        setShowColumnMapper(true);
+    if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const ab = e.target?.result as ArrayBuffer;
+        if (!ab) return;
 
-        // Auto-detect columns based on header keywords
-        let questionIdx = -1;
-        let categoryIdx = -1;
-        let locationIdx = -1;
+        try {
+          const workbook = XLSX.read(new Uint8Array(ab), { type: "array" });
+          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          const jsonData = XLSX.utils.sheet_to_json<any[]>(worksheet, { header: 1, defval: "" });
 
-        headers.forEach((header, idx) => {
-          const lower = header.toLowerCase();
-          if (
-            lower.includes("question") ||
-            lower.includes("requirement") ||
-            lower.includes("prompt") ||
-            lower.includes("text")
-          ) {
-            if (questionIdx === -1) questionIdx = idx;
-          } else if (
-            lower.includes("category") ||
-            lower.includes("section") ||
-            lower.includes("topic")
-          ) {
-            if (categoryIdx === -1) categoryIdx = idx;
-          } else if (
-            lower.includes("location") ||
-            lower.includes("row") ||
-            lower.includes("id") ||
-            lower.includes("number")
-          ) {
-            if (locationIdx === -1) locationIdx = idx;
+          if (jsonData.length > 0) {
+            const headers = (jsonData[0] as any[]).map(val => String(val || "").trim());
+            const rows = jsonData.slice(1).map(row => 
+              Array.from({ length: headers.length }, (_, i) => String(row[i] || "").trim())
+            );
+
+            setCsvHeaders(headers);
+            setCsvRows(rows);
+            setShowColumnMapper(true);
+
+            // Auto-detect columns based on header keywords
+            let questionIdx = -1;
+            let categoryIdx = -1;
+            let locationIdx = -1;
+
+            headers.forEach((header, idx) => {
+              const lower = header.toLowerCase();
+              if (
+                lower.includes("question") ||
+                lower.includes("requirement") ||
+                lower.includes("prompt") ||
+                lower.includes("text")
+              ) {
+                if (questionIdx === -1) questionIdx = idx;
+              } else if (
+                lower.includes("category") ||
+                lower.includes("section") ||
+                lower.includes("topic")
+              ) {
+                if (categoryIdx === -1) categoryIdx = idx;
+              } else if (
+                lower.includes("location") ||
+                lower.includes("row") ||
+                lower.includes("id") ||
+                lower.includes("number")
+              ) {
+                if (locationIdx === -1) locationIdx = idx;
+              }
+            });
+
+            setMapQuestionTextIdx(questionIdx !== -1 ? questionIdx : 0);
+            setMapCategoryIdx(categoryIdx);
+            setMapSourceLocationIdx(locationIdx);
           }
-        });
+        } catch (err) {
+          console.error("Failed to parse Excel file:", err);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    } else {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target?.result as string;
+        if (!text) return;
 
-        setMapQuestionTextIdx(questionIdx !== -1 ? questionIdx : 0);
-        setMapCategoryIdx(categoryIdx);
-        setMapSourceLocationIdx(locationIdx);
-      }
-    };
-    reader.readAsText(file);
+        const parsed = parseCSV(text);
+        if (parsed.length > 0) {
+          const headers = parsed[0];
+          const rows = parsed.slice(1);
+          setCsvHeaders(headers);
+          setCsvRows(rows);
+          setShowColumnMapper(true);
+
+          // Auto-detect columns based on header keywords
+          let questionIdx = -1;
+          let categoryIdx = -1;
+          let locationIdx = -1;
+
+          headers.forEach((header, idx) => {
+            const lower = header.toLowerCase();
+            if (
+              lower.includes("question") ||
+              lower.includes("requirement") ||
+              lower.includes("prompt") ||
+              lower.includes("text")
+            ) {
+              if (questionIdx === -1) questionIdx = idx;
+            } else if (
+              lower.includes("category") ||
+              lower.includes("section") ||
+              lower.includes("topic")
+            ) {
+              if (categoryIdx === -1) categoryIdx = idx;
+            } else if (
+              lower.includes("location") ||
+              lower.includes("row") ||
+              lower.includes("id") ||
+              lower.includes("number")
+            ) {
+              if (locationIdx === -1) locationIdx = idx;
+            }
+          });
+
+          setMapQuestionTextIdx(questionIdx !== -1 ? questionIdx : 0);
+          setMapCategoryIdx(categoryIdx);
+          setMapSourceLocationIdx(locationIdx);
+        }
+      };
+      reader.readAsText(file);
+    }
   };
 
   const getMappedQuestions = () => {
@@ -282,7 +349,7 @@ export default function Projects() {
                   <label className="block text-xs font-semibold text-slate-400 mb-1.5">Ingestion Note</label>
                   <div className="rounded-xl border border-indigo-500/10 bg-indigo-500/5 p-3 text-[11px] text-indigo-300 flex items-start gap-2">
                     <ShieldCheck className="h-4 w-4 shrink-0 text-indigo-400" />
-                    <span>Upload a CSV spreadsheet questionnaire and map the headers directly, or paste raw text. Leaving both blank seeds typical compliance questions.</span>
+                    <span>Upload a CSV or Excel spreadsheet questionnaire and map the headers directly, or paste raw text. Leaving both blank seeds typical compliance questions.</span>
                   </div>
                 </div>
               </div>
@@ -309,7 +376,7 @@ export default function Projects() {
                       onClick={() => {
                         const input = document.createElement("input");
                         input.type = "file";
-                        input.accept = ".csv,.txt";
+                        input.accept = ".csv,.xlsx,.xls,.txt";
                         input.onchange = (e) => {
                           const file = (e.target as HTMLInputElement).files?.[0];
                           if (file) handleFileChange(file);
@@ -320,7 +387,7 @@ export default function Projects() {
                         uploadFile ? "bg-indigo-600/20 text-indigo-400 border border-indigo-500/20" : "bg-transparent text-slate-400 hover:text-slate-300"
                       }`}
                     >
-                      Upload CSV File
+                      Upload CSV/Excel File
                     </button>
                   </div>
                 </div>
@@ -347,7 +414,7 @@ export default function Projects() {
                       onClick={() => {
                         const input = document.createElement("input");
                         input.type = "file";
-                        input.accept = ".csv,.txt";
+                        input.accept = ".csv,.xlsx,.xls,.txt";
                         input.onchange = (e) => {
                           const file = (e.target as HTMLInputElement).files?.[0];
                           if (file) handleFileChange(file);
@@ -356,8 +423,8 @@ export default function Projects() {
                       }}
                     >
                       <Plus className="mx-auto h-5 w-5 text-indigo-400 mb-2 animate-bounce" />
-                      <p className="text-xs font-bold text-slate-200">Drag & drop your CSV questionnaire here</p>
-                      <p className="text-[10px] text-slate-500 mt-1">Or click to select a file from your device (CSV, TXT)</p>
+                      <p className="text-xs font-bold text-slate-200">Drag & drop your CSV or Excel questionnaire here</p>
+                      <p className="text-[10px] text-slate-500 mt-1">Or click to select a file from your device (CSV, Excel, TXT)</p>
                     </div>
 
                     <div className="relative flex py-1 items-center">
