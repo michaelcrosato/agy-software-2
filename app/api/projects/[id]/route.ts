@@ -56,6 +56,8 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
+    const { searchParams } = new URL(req.url);
+    const tone = searchParams.get("tone") || "Concise";
     
     // Find project questions
     const questions = await prisma.question.findMany({
@@ -71,7 +73,7 @@ export async function POST(
 
     // Trigger local RAG for each question
     for (const q of questions) {
-      const ragResult = await performLocalRAG(q.originalText);
+      const ragResult = await performLocalRAG(q.originalText, tone);
       
       // Update question status and confidence
       const updatedQ = await prisma.question.update({

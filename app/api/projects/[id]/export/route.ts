@@ -1,6 +1,18 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import * as XLSX from "xlsx";
+import { 
+  Document, 
+  Packer, 
+  Paragraph, 
+  TextRun, 
+  HeadingLevel, 
+  Table, 
+  TableRow, 
+  TableCell, 
+  WidthType, 
+  BorderStyle 
+} from "docx";
 
 const SENSITIVE_CATEGORIES = new Set([
   "security certifications",
@@ -224,6 +236,171 @@ export async function GET(
         headers: {
           "Content-Type": "text/markdown; charset=utf-8",
           "Content-Disposition": `attachment; filename="${safeFileName}_export.md"`
+        }
+      });
+    }
+
+    if (format === "docx") {
+      const doc = new Document({
+        sections: [
+          {
+            properties: {},
+            children: [
+              new Paragraph({
+                text: "AnswerFlow AI RFP Response Export",
+                heading: HeadingLevel.HEADING_1,
+                spacing: { after: 200 },
+              }),
+              new Paragraph({
+                children: [
+                  new TextRun({ text: "Project Name: ", bold: true }),
+                  new TextRun({ text: project.name }),
+                ],
+                spacing: { after: 100 },
+              }),
+              new Paragraph({
+                children: [
+                  new TextRun({ text: "Customer: ", bold: true }),
+                  new TextRun({ text: project.customerName }),
+                ],
+                spacing: { after: 100 },
+              }),
+              new Paragraph({
+                children: [
+                  new TextRun({ text: "Export Date: ", bold: true }),
+                  new TextRun({ text: new Date().toLocaleString() }),
+                ],
+                spacing: { after: 400 },
+              }),
+              ...(() => {
+                const categories = ["Security", "Infrastructure", "Compliance", "General"];
+                const paragraphsAndTables: any[] = [];
+
+                for (const cat of categories) {
+                  const catQuestions = project.questions.filter(q => q.category === cat);
+                  if (catQuestions.length === 0) continue;
+
+                  paragraphsAndTables.push(
+                    new Paragraph({
+                      text: `Section: ${cat}`,
+                      heading: HeadingLevel.HEADING_2,
+                      spacing: { before: 400, after: 200 },
+                    })
+                  );
+
+                  const tableRows = [
+                    new TableRow({
+                      children: [
+                        new TableCell({
+                          children: [new Paragraph({ children: [new TextRun({ text: "Question / ID", bold: true })] })],
+                          width: { size: 35, type: WidthType.PERCENTAGE },
+                        }),
+                        new TableCell({
+                          children: [new Paragraph({ children: [new TextRun({ text: "Response Details", bold: true })] })],
+                          width: { size: 65, type: WidthType.PERCENTAGE },
+                        }),
+                      ],
+                    }),
+                  ];
+
+                  for (const q of catQuestions) {
+                    const processedAnswer = getProcessedAnswer(q);
+                    const citationParas: Paragraph[] = [];
+                    
+                    if (q.answerDraft?.citations && q.answerDraft.citations.length > 0) {
+                      citationParas.push(
+                        new Paragraph({
+                          children: [new TextRun({ text: "Cited Grounding Sources:", bold: true, size: 16 })],
+                          spacing: { before: 100, after: 50 },
+                        })
+                      );
+                      for (const cit of q.answerDraft.citations) {
+                        citationParas.push(
+                          new Paragraph({
+                            children: [
+                              new TextRun({ 
+                                text: `• [${cit.sourceChunk.sourceDocument.title}] (Pg ${cit.sourceChunk.pageNumber || 1}): `, 
+                                size: 16, 
+                                color: "666666" 
+                              }),
+                              new TextRun({ 
+                                text: `"${cit.quoteExcerpt}"`, 
+                                size: 16, 
+                                italics: true, 
+                                color: "666666" 
+                              }),
+                            ],
+                            spacing: { after: 50 },
+                          })
+                        );
+                      }
+                    }
+
+                    tableRows.push(
+                      new TableRow({
+                        children: [
+                          new TableCell({
+                            children: [
+                              new Paragraph({
+                                children: [
+                                  new TextRun({ text: q.sourceLocation ? `${q.sourceLocation}: ` : "", bold: true, size: 18 }),
+                                  new TextRun({ text: q.originalText, size: 18 }),
+                                ],
+                                spacing: { after: 100 },
+                              }),
+                              new Paragraph({
+                                children: [
+                                  new TextRun({ text: "Status: ", bold: true, size: 16 }),
+                                  new TextRun({ text: q.status, size: 16 }),
+                                ],
+                              }),
+                            ],
+                            width: { size: 35, type: WidthType.PERCENTAGE },
+                          }),
+                          new TableCell({
+                            children: [
+                              new Paragraph({
+                                children: [
+                                  new TextRun({ text: processedAnswer || "No response drafted.", size: 20 }),
+                                ],
+                              }),
+                              ...citationParas,
+                            ],
+                            width: { size: 65, type: WidthType.PERCENTAGE },
+                          }),
+                        ],
+                      })
+                    );
+                  }
+
+                  paragraphsAndTables.push(
+                    new Table({
+                      rows: tableRows,
+                      width: { size: 100, type: WidthType.PERCENTAGE },
+                      borders: {
+                        top: { style: BorderStyle.SINGLE, size: 4, color: "E2E8F0" },
+                        bottom: { style: BorderStyle.SINGLE, size: 4, color: "E2E8F0" },
+                        left: { style: BorderStyle.SINGLE, size: 4, color: "E2E8F0" },
+                        right: { style: BorderStyle.SINGLE, size: 4, color: "E2E8F0" },
+                        insideHorizontal: { style: BorderStyle.SINGLE, size: 4, color: "E2E8F0" },
+                        insideVertical: { style: BorderStyle.SINGLE, size: 4, color: "E2E8F0" },
+                      },
+                    })
+                  );
+                }
+
+                return paragraphsAndTables;
+              })(),
+            ],
+          },
+        ],
+      });
+
+      const buf = await Packer.toBuffer(doc);
+      return new NextResponse(buf, {
+        headers: {
+          "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          "Content-Disposition": `attachment; filename="${safeFileName}_export.docx"`
         }
       });
     }

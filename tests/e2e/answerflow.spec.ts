@@ -79,7 +79,7 @@ test.describe("AnswerFlow AI End-to-End User Flow Tests", () => {
     // Check export format links are available
     await expect(page.locator("a:has-text('Excel Spreadsheet')")).toBeVisible();
     await expect(page.locator("a:has-text('Comma-Separated Values')")).toBeVisible();
-    await expect(page.locator("a:has-text('Word Document')")).toBeVisible();
+    await expect(page.locator("a:has-text('Word Document (.docx)')")).toBeVisible();
     await expect(page.locator("a:has-text('Structured JSON')")).toBeVisible();
   });
 

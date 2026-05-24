@@ -350,7 +350,7 @@ export default function ProjectWorkspace() {
   const handleTriggerAI = async () => {
     setGeneratingAI(true);
     try {
-      const res = await fetch(`/api/projects/${projectId}`, {
+      const res = await fetch(`/api/projects/${projectId}?tone=${selectedTone}`, {
         method: "POST",
       });
       if (res.ok) {
@@ -533,12 +533,12 @@ export default function ProjectWorkspace() {
                       <FileText className="h-3.5 w-3.5 text-teal-400" /> Comma-Separated Values (.csv)
                     </a>
                     <a
-                      href={`/api/projects/${projectId}/export?format=markdown${allowUnapprovedSensitive ? "&allowUnapprovedSensitive=true" : ""}`}
+                      href={`/api/projects/${projectId}/export?format=docx${allowUnapprovedSensitive ? "&allowUnapprovedSensitive=true" : ""}`}
                       onClick={() => setShowExportDropdown(false)}
                       className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold text-slate-300 hover:bg-white/5 hover:text-white transition-colors"
-                      id="export-md-link"
+                      id="export-docx-link"
                     >
-                      <FileText className="h-3.5 w-3.5 text-blue-400" /> Word Document (.md)
+                      <FileText className="h-3.5 w-3.5 text-blue-400" /> Word Document (.docx)
                     </a>
                     <a
                       href={`/api/projects/${projectId}/export?format=json${allowUnapprovedSensitive ? "&allowUnapprovedSensitive=true" : ""}`}
