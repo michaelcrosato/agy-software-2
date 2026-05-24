@@ -121,3 +121,17 @@ LOOP_LOG
 - **Next Step:** Expand RAG engine capabilities with advanced semantic ranking or support CSV answer parsing back to original spreadsheet files on export.
 
 
+
+## [2026-05-24T03:05:00Z] - Iteration 11
+- **Status:** Green (All build, lint, typecheck, unit tests, and Playwright E2E tests passing cleanly)
+- **Objective:** Fix CSV/Excel ingestion regression and implement robust separate CSV/XLSX export formats
+- **Actions:**
+  - Resolved E2E Playwright test failure by updating the file upload button click locator from 'Upload CSV File' to 'Upload CSV/Excel File' in 	ests/e2e/answerflow.spec.ts, aligning with the newly implemented Excel questionnaire ingestion feature.
+  - Refactored pp/api/projects/[id]/export/route.ts to separate CSV and Excel XLSX formats. Requesting ormat=csv now generates a valid, RFC 4180 compliant text-based Comma-Separated Values string, and ormat=xlsx generates the auto-fitted binary Excel sheet.
+  - Exposed separate spreadsheet options in the project Review Workspace dropdown (pp/projects/[projectId]/page.tsx): "Excel Spreadsheet (.xlsx)" and "Comma-Separated Values (.csv)".
+  - Expanded E2E suite assertions to verify the presence of both Excel and CSV export links.
+  - Successfully validated all local checks: 
+pm run typecheck (passing), 
+pm run lint (passing), Vitest unit tests (11/11 passing including new excel.test.ts), and Playwright E2E tests (10/10 passing cleanly).
+  - Staged and committed all stable changes directly to the main branch to enforce State Hygiene.
+- **Next Step:** Expand RAG engine capabilities with advanced semantic ranking or support CSV answer parsing back to original spreadsheet files on export.
