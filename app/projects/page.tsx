@@ -109,7 +109,63 @@ export default function Projects() {
     setUploadFile(file);
     const fileName = file.name.toLowerCase();
 
-    if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
+    if (fileName.endsWith(".docx")) {
+      // Set a temporary loading state
+      setCsvHeaders(["Parsing Word Document..."]);
+      setCsvRows([["Please wait while we extract questions...", ""]]);
+      setShowColumnMapper(true);
+      setMapQuestionTextIdx(0);
+      setMapSourceLocationIdx(1);
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      fetch("/api/parse-document", {
+        method: "POST",
+        body: formData
+      })
+      .then(res => {
+        if (!res.ok) throw new Error("Failed to parse document");
+        return res.json();
+      })
+      .then(data => {
+        if (data.text) {
+          // Parse questions from raw text
+          const lines = data.text
+            .split(/\r?\n/)
+            .map((line: string) => line.trim())
+            .filter((line: string) => line.length > 5 && (line.endsWith("?") || /^\d+\.?\s+/.test(line)));
+          
+          if (lines.length > 0) {
+            setCsvHeaders(["Question Text", "Source Location"]);
+            const rows = lines.map((line: string, idx: number) => [line, `Paragraph ${idx + 1}`]);
+            setCsvRows(rows);
+            setMapQuestionTextIdx(0);
+            setMapSourceLocationIdx(1);
+          } else {
+            // If no questions ending in ? or numbered are detected, list all non-empty lines
+            const allLines = data.text
+              .split(/\r?\n/)
+              .map((line: string) => line.trim())
+              .filter((line: string) => line.length > 10);
+            
+            setCsvHeaders(["Line Text", "Source Location"]);
+            const rows = allLines.map((line: string, idx: number) => [line, `Paragraph ${idx + 1}`]);
+            setCsvRows(rows);
+            setMapQuestionTextIdx(0);
+            setMapSourceLocationIdx(1);
+          }
+        } else {
+          setCsvHeaders(["Error"]);
+          setCsvRows([["No text content found in Word Document.", ""]]);
+        }
+      })
+      .catch(err => {
+        console.error("DOCX parsing error:", err);
+        setCsvHeaders(["Error"]);
+        setCsvRows([["Failed to parse Word Document content. Please try another file.", ""]]);
+      });
+    } else if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
       const reader = new FileReader();
       reader.onload = (e) => {
         const ab = e.target?.result as ArrayBuffer;
@@ -402,7 +458,7 @@ export default function Projects() {
                       onClick={() => {
                         const input = document.createElement("input");
                         input.type = "file";
-                        input.accept = ".csv,.xlsx,.xls,.txt";
+                        input.accept = ".csv,.xlsx,.xls,.txt,.docx";
                         input.onchange = (e) => {
                           const file = (e.target as HTMLInputElement).files?.[0];
                           if (file) handleFileChange(file);
@@ -440,7 +496,7 @@ export default function Projects() {
                       onClick={() => {
                         const input = document.createElement("input");
                         input.type = "file";
-                        input.accept = ".csv,.xlsx,.xls,.txt";
+                        input.accept = ".csv,.xlsx,.xls,.txt,.docx";
                         input.onchange = (e) => {
                           const file = (e.target as HTMLInputElement).files?.[0];
                           if (file) handleFileChange(file);
@@ -449,8 +505,8 @@ export default function Projects() {
                       }}
                     >
                       <Plus className="mx-auto h-5 w-5 text-indigo-400 mb-2 animate-bounce" />
-                      <p className="text-xs font-bold text-slate-200">Drag & drop your CSV or Excel questionnaire here</p>
-                      <p className="text-[10px] text-slate-500 mt-1">Or click to select a file from your device (CSV, Excel, TXT)</p>
+                      <p className="text-xs font-bold text-slate-200">Drag & drop your CSV, Excel, or Word (DOCX) questionnaire here</p>
+                      <p className="text-[10px] text-slate-500 mt-1">Or click to select a file from your device (CSV, Excel, Word, TXT)</p>
                     </div>
 
                     <div className="relative flex py-1 items-center">

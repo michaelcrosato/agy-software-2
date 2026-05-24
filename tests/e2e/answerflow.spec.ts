@@ -351,5 +351,41 @@ test.describe("AnswerFlow AI End-to-End User Flow Tests", () => {
     await expect(xlsxLink).toHaveAttribute("href", /export\?format=xlsx&allowUnapprovedSensitive=true$/);
     await expect(csvLink).toHaveAttribute("href", /export\?format=csv&allowUnapprovedSensitive=true$/);
   });
+
+  test("should allow uploading a DOCX questionnaire and extracting questions successfully", async ({ page }) => {
+    // Navigate to projects
+    await page.click("text=Projects");
+    await page.waitForTimeout(500);
+
+    // Open new project form
+    await page.click("text=New Response Project");
+    await page.waitForTimeout(200);
+
+    // Fill in basic details
+    await page.fill('input[placeholder="e.g. Enterprise Security Review Q3"]', "DOCX Import Test Project");
+    await page.fill('input[placeholder="e.g. Acme Corporation"]', "DOCX Test Corp");
+
+    // Simulate file upload with single-paragraph.docx
+    const fileChooserPromise = page.waitForEvent("filechooser");
+    await page.click("text=Upload CSV/Excel File");
+    const fileChooser = await fileChooserPromise;
+    await fileChooser.setFiles("tests/single-paragraph.docx");
+
+    await page.waitForTimeout(1500);
+
+    // Verify DOCX details banner is visible
+    await expect(page.locator("text=single-paragraph.docx")).toBeVisible();
+
+    // Verify Live Parse Preview matches the extracted text from mammoth
+    await expect(page.locator("text=Walking on imported air")).toBeVisible();
+
+    // Click Parse & Create Project
+    await page.click("button:has-text('Parse & Create Project')");
+    await page.waitForTimeout(1500);
+
+    // Should redirect to review workspace and load questions from the DOCX
+    await expect(page).toHaveURL(/\/projects\/.+/);
+    await expect(page.locator("h2:has-text('Walking on imported air')")).toBeVisible();
+  });
 });
 

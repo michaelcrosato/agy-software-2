@@ -62,7 +62,31 @@ export default function Sources() {
       }
     };
     
-    if (ext === "pdf" || ext === "docx") {
+    if (ext === "docx") {
+      setText("Parsing Word Document...");
+      const formData = new FormData();
+      formData.append("file", file);
+      
+      fetch("/api/parse-document", {
+        method: "POST",
+        body: formData
+      })
+      .then(res => {
+        if (!res.ok) throw new Error("Failed to parse document");
+        return res.json();
+      })
+      .then(data => {
+        if (data.text) {
+          setText(data.text);
+        } else {
+          setText("Word Document parsed but returned empty text.");
+        }
+      })
+      .catch(err => {
+        console.error("DOCX parsing error:", err);
+        setText("Failed to parse Word Document content. Please try manual copy-paste.");
+      });
+    } else if (ext === "pdf") {
       const mockText = `This is a parsed mock content of the uploaded document "${file.name}".\n\n` +
         `Title: ${formattedTitle}\n` +
         `File Name: ${file.name}\n` +
