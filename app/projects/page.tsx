@@ -39,6 +39,7 @@ export default function Projects() {
   const [mapQuestionTextIdx, setMapQuestionTextIdx] = useState<number>(-1);
   const [mapCategoryIdx, setMapCategoryIdx] = useState<number>(-1);
   const [mapSourceLocationIdx, setMapSourceLocationIdx] = useState<number>(-1);
+  const [mapAnswerColIdx, setMapAnswerColIdx] = useState<number>(-1);
   
   // Show Column Mapper view
   const [showColumnMapper, setShowColumnMapper] = useState(false);
@@ -134,6 +135,7 @@ export default function Projects() {
             let questionIdx = -1;
             let categoryIdx = -1;
             let locationIdx = -1;
+            let answerIdx = -1;
 
             headers.forEach((header, idx) => {
               const lower = header.toLowerCase();
@@ -157,12 +159,21 @@ export default function Projects() {
                 lower.includes("number")
               ) {
                 if (locationIdx === -1) locationIdx = idx;
+              } else if (
+                lower.includes("answer") ||
+                lower.includes("response") ||
+                lower.includes("solution") ||
+                lower.includes("reply") ||
+                lower.includes("comment")
+              ) {
+                if (answerIdx === -1) answerIdx = idx;
               }
             });
 
             setMapQuestionTextIdx(questionIdx !== -1 ? questionIdx : 0);
             setMapCategoryIdx(categoryIdx);
             setMapSourceLocationIdx(locationIdx);
+            setMapAnswerColIdx(answerIdx);
           }
         } catch (err) {
           console.error("Failed to parse Excel file:", err);
@@ -187,6 +198,7 @@ export default function Projects() {
           let questionIdx = -1;
           let categoryIdx = -1;
           let locationIdx = -1;
+          let answerIdx = -1;
 
           headers.forEach((header, idx) => {
             const lower = header.toLowerCase();
@@ -210,12 +222,21 @@ export default function Projects() {
               lower.includes("number")
             ) {
               if (locationIdx === -1) locationIdx = idx;
+            } else if (
+              lower.includes("answer") ||
+              lower.includes("response") ||
+              lower.includes("solution") ||
+              lower.includes("reply") ||
+              lower.includes("comment")
+            ) {
+              if (answerIdx === -1) answerIdx = idx;
             }
           });
 
           setMapQuestionTextIdx(questionIdx !== -1 ? questionIdx : 0);
           setMapCategoryIdx(categoryIdx);
           setMapSourceLocationIdx(locationIdx);
+          setMapAnswerColIdx(answerIdx);
         }
       };
       reader.readAsText(file);
@@ -233,7 +254,9 @@ export default function Projects() {
       return {
         text: qText,
         category: qCategory || undefined,
-        sourceLocation: qLoc
+        sourceLocation: qLoc,
+        originalRowJson: JSON.stringify(row),
+        rowIndex: idx,
       };
     }).filter(q => q.text.trim().length > 0);
   };
@@ -252,6 +275,8 @@ export default function Projects() {
 
       if (uploadFile && showColumnMapper && mapQuestionTextIdx !== -1) {
         payload.questions = getMappedQuestions();
+        payload.originalHeadersJson = JSON.stringify(csvHeaders);
+        payload.mappedAnswerColIdx = mapAnswerColIdx !== -1 ? mapAnswerColIdx : null;
       } else {
         payload.questionnaireText = questionnaireText;
       }
@@ -298,6 +323,7 @@ export default function Projects() {
               setShowColumnMapper(false);
               setCsvHeaders([]);
               setCsvRows([]);
+              setMapAnswerColIdx(-1);
             }}
             className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-indigo-500 transition-colors shadow-lg shadow-indigo-600/20"
           >
@@ -461,6 +487,7 @@ export default function Projects() {
                           setShowColumnMapper(false);
                           setCsvHeaders([]);
                           setCsvRows([]);
+                          setMapAnswerColIdx(-1);
                         }}
                         className="text-[10px] font-bold text-rose-400 hover:text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 px-2.5 py-1.5 rounded-lg border border-rose-500/10 transition-all"
                       >
@@ -475,7 +502,7 @@ export default function Projects() {
                           <span className="text-[10px] font-semibold text-slate-400">Map CSV headers to database fields</span>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                           <div>
                             <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-wider">Question Text <span className="text-rose-400">*</span></label>
                             <select
@@ -512,6 +539,21 @@ export default function Projects() {
                               className="w-full rounded-xl border border-white/5 bg-[#07080e] px-3 py-2 text-xs text-white focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                             >
                               <option value={-1}>-- Auto (Row Number) --</option>
+                              {csvHeaders.map((header, idx) => (
+                                <option key={idx} value={idx}>{header || `Column ${idx + 1}`}</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-wider">Target Answer Column (Optional)</label>
+                            <select
+                              value={mapAnswerColIdx}
+                              onChange={(e) => setMapAnswerColIdx(Number(e.target.value))}
+                              className="w-full rounded-xl border border-white/5 bg-[#07080e] px-3 py-2 text-xs text-white focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                              id="map-target-answer-select"
+                            >
+                              <option value={-1}>-- None (Flat Response Sheet) --</option>
                               {csvHeaders.map((header, idx) => (
                                 <option key={idx} value={idx}>{header || `Column ${idx + 1}`}</option>
                               ))}

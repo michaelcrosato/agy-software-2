@@ -8,6 +8,7 @@ import {
   Sparkles, 
   ChevronRight, 
   ShieldCheck, 
+  ShieldAlert,
   MessageSquare, 
   Plus, 
   User, 
@@ -32,6 +33,19 @@ const STOP_WORDS = new Set([
   "their", "who", "whom", "which", "whose", "how", "why", "when",
   "where", "can", "could", "will", "would", "shall", "should", "may",
   "might", "must", "been", "were", "was", "has", "had", "did", "does"
+]);
+
+const SENSITIVE_CATEGORIES = new Set([
+  "security certifications",
+  "security",
+  "compliance",
+  "insurance",
+  "legal",
+  "data residency",
+  "subprocessors",
+  "breach notification",
+  "financial",
+  "references"
 ]);
 
 function stem(word: string): string {
@@ -158,6 +172,7 @@ export default function ProjectWorkspace() {
 
   // Export dropdown state
   const [showExportDropdown, setShowExportDropdown] = useState(false);
+  const [allowUnapprovedSensitive, setAllowUnapprovedSensitive] = useState(false);
 
   // Clustering and Bulk Actions State
   const [viewMode, setViewMode] = useState<"list" | "clusters">("list");
@@ -427,6 +442,11 @@ export default function ProjectWorkspace() {
     return matchesCategory && matchesStatus && matchesSearch;
   });
 
+  const unapprovedSensitiveCount = project.questions.filter(q =>
+    SENSITIVE_CATEGORIES.has(q.category.toLowerCase()) &&
+    q.status !== "Approved"
+  ).length || 0;
+
   return (
     <div className="min-h-screen bg-[#07080e] text-slate-100 flex flex-col h-screen">
       <Navbar />
@@ -455,39 +475,77 @@ export default function ProjectWorkspace() {
                 onClick={() => setShowExportDropdown(!showExportDropdown)}
                 className="inline-flex items-center gap-1.5 rounded-xl bg-white/[0.03] border border-white/5 px-4 py-2 text-xs font-bold text-white hover:bg-white/[0.08] hover:border-white/10 transition-all"
               >
-                <Download className="h-4 w-4 text-indigo-400" /> Export Response <ChevronDown className="h-3 w-3" />
+                <Download className="h-4 w-4 text-indigo-400" />
+                Export Response
+                {unapprovedSensitiveCount > 0 && (
+                  <span className="inline-flex items-center rounded-full bg-rose-500/10 px-1.5 py-0.5 text-[9px] font-bold text-rose-400 border border-rose-500/20" id="unapproved-sensitive-badge">
+                    !
+                  </span>
+                )}
+                <ChevronDown className="h-3 w-3" />
               </button>
               
               {showExportDropdown && (
-                <div className="absolute right-0 mt-2 w-48 rounded-xl border border-white/5 bg-[#0f111a] p-1.5 shadow-2xl z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-                  <a
-                    href={`/api/projects/${projectId}/export?format=xlsx`}
-                    onClick={() => setShowExportDropdown(false)}
-                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold text-slate-300 hover:bg-white/5 hover:text-white transition-colors"
-                  >
-                    <FileText className="h-3.5 w-3.5 text-emerald-400" /> Excel Spreadsheet (.xlsx)
-                  </a>
-                  <a
-                    href={`/api/projects/${projectId}/export?format=csv`}
-                    onClick={() => setShowExportDropdown(false)}
-                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold text-slate-300 hover:bg-white/5 hover:text-white transition-colors"
-                  >
-                    <FileText className="h-3.5 w-3.5 text-teal-400" /> Comma-Separated Values (.csv)
-                  </a>
-                  <a
-                    href={`/api/projects/${projectId}/export?format=markdown`}
-                    onClick={() => setShowExportDropdown(false)}
-                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold text-slate-300 hover:bg-white/5 hover:text-white transition-colors"
-                  >
-                    <FileText className="h-3.5 w-3.5 text-blue-400" /> Word Document (.md)
-                  </a>
-                  <a
-                    href={`/api/projects/${projectId}/export?format=json`}
-                    onClick={() => setShowExportDropdown(false)}
-                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold text-slate-300 hover:bg-white/5 hover:text-white transition-colors"
-                  >
-                    <FileText className="h-3.5 w-3.5 text-purple-400" /> Structured JSON (.json)
-                  </a>
+                <div className={`absolute right-0 mt-2 rounded-xl border border-white/5 bg-[#0f111a] shadow-2xl z-50 animate-in fade-in slide-in-from-top-2 duration-150 ${
+                  unapprovedSensitiveCount > 0 ? "w-64 p-3 space-y-3" : "w-48 p-1.5"
+                }`}>
+                  {unapprovedSensitiveCount > 0 && (
+                    <div className="rounded-lg bg-rose-500/5 border border-rose-500/15 p-2.5 space-y-1.5" id="unapproved-sensitive-warning-box">
+                      <p className="text-[10px] font-bold text-rose-400 flex items-center gap-1">
+                        <ShieldAlert className="h-3 w-3 shrink-0" />
+                        Unapproved Sensitive Claims
+                      </p>
+                      <p className="text-[9px] leading-relaxed text-slate-400 font-sans font-medium">
+                        {unapprovedSensitiveCount} sensitive answers will be redacted by default to protect organization liability.
+                      </p>
+
+                      <label className="flex items-center gap-1.5 text-[9px] font-semibold text-slate-300 select-none cursor-pointer">
+                        <input
+                          type="checkbox"
+                          id="allow-unapproved-checkbox"
+                          checked={allowUnapprovedSensitive}
+                          onChange={(e) => setAllowUnapprovedSensitive(e.target.checked)}
+                          className="rounded border-white/10 bg-[#07080e] text-rose-600 focus:ring-rose-500 h-3 w-3"
+                        />
+                        Include unapproved (adds warnings)
+                      </label>
+                    </div>
+                  )}
+
+                  <div className="space-y-1">
+                    <a
+                      href={`/api/projects/${projectId}/export?format=xlsx${allowUnapprovedSensitive ? "&allowUnapprovedSensitive=true" : ""}`}
+                      onClick={() => setShowExportDropdown(false)}
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold text-slate-300 hover:bg-white/5 hover:text-white transition-colors"
+                      id="export-xlsx-link"
+                    >
+                      <FileText className="h-3.5 w-3.5 text-emerald-400" /> Excel Spreadsheet (.xlsx)
+                    </a>
+                    <a
+                      href={`/api/projects/${projectId}/export?format=csv${allowUnapprovedSensitive ? "&allowUnapprovedSensitive=true" : ""}`}
+                      onClick={() => setShowExportDropdown(false)}
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold text-slate-300 hover:bg-white/5 hover:text-white transition-colors"
+                      id="export-csv-link"
+                    >
+                      <FileText className="h-3.5 w-3.5 text-teal-400" /> Comma-Separated Values (.csv)
+                    </a>
+                    <a
+                      href={`/api/projects/${projectId}/export?format=markdown${allowUnapprovedSensitive ? "&allowUnapprovedSensitive=true" : ""}`}
+                      onClick={() => setShowExportDropdown(false)}
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold text-slate-300 hover:bg-white/5 hover:text-white transition-colors"
+                      id="export-md-link"
+                    >
+                      <FileText className="h-3.5 w-3.5 text-blue-400" /> Word Document (.md)
+                    </a>
+                    <a
+                      href={`/api/projects/${projectId}/export?format=json${allowUnapprovedSensitive ? "&allowUnapprovedSensitive=true" : ""}`}
+                      onClick={() => setShowExportDropdown(false)}
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold text-slate-300 hover:bg-white/5 hover:text-white transition-colors"
+                      id="export-json-link"
+                    >
+                      <FileText className="h-3.5 w-3.5 text-purple-400" /> Structured JSON (.json)
+                    </a>
+                  </div>
                 </div>
               )}
             </div>
@@ -818,6 +876,18 @@ export default function ProjectWorkspace() {
                       {selectedQuestion.originalText}
                     </h2>
                   </div>
+
+                  {selectedQuestion && SENSITIVE_CATEGORIES.has(selectedQuestion.category.toLowerCase()) && status !== "Approved" && (
+                    <div className="rounded-2xl border border-rose-500/20 bg-rose-500/5 p-4 flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-200" id="sensitive-claim-banner">
+                      <ShieldAlert className="h-5 w-5 text-rose-400 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-xs font-bold text-white">Sensitive Claim Control Active</p>
+                        <p className="text-[10px] text-slate-400 mt-1 leading-relaxed font-medium font-sans">
+                          This question falls under the <span className="text-rose-400 font-bold">{selectedQuestion.category}</span> sensitive category. It is a restricted claim and <span className="text-rose-400 font-semibold">requires explicit human approval (Status: Approved)</span> before the response can be exported.
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
                   <form onSubmit={handleUpdateQuestion} className="space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

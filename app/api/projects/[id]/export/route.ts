@@ -2,6 +2,31 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import * as XLSX from "xlsx";
 
+const SENSITIVE_CATEGORIES = new Set([
+  "security certifications",
+  "security",
+  "compliance",
+  "insurance",
+  "legal",
+  "data residency",
+  "subprocessors",
+  "breach notification",
+  "financial",
+  "references"
+]);
+
+function normalizeCategory(category: string) {
+  return category.trim().toLowerCase();
+}
+
+function parseStringArray(value: string): string[] {
+  const parsed = JSON.parse(value);
+  if (!Array.isArray(parsed)) {
+    throw new Error("Expected a JSON array");
+  }
+
+  return parsed.map(cell => String(cell ?? ""));
+}
 
 export async function GET(
   req: Request,
@@ -11,6 +36,7 @@ export async function GET(
     const { id } = await params;
     const { searchParams } = new URL(req.url);
     const format = searchParams.get("format") || "csv";
+    const allowUnapprovedSensitive = searchParams.get("allowUnapprovedSensitive") === "true";
 
     // 1. Fetch project with questions, drafts, assignee, and citations
     const project = await prisma.responseProject.findUnique({
@@ -44,23 +70,76 @@ export async function GET(
 
     const safeFileName = project.name.replace(/[^a-z0-9]/gi, "_").toLowerCase();
 
-    // 2. Export based on format
+    const getProcessedAnswer = (q: typeof project.questions[0]) => {
+      const draftText = q.answerDraft?.text || "";
+      const isSensitive = SENSITIVE_CATEGORIES.has(normalizeCategory(q.category));
+      const isApproved = q.status === "Approved";
+
+      if (isSensitive && !isApproved) {
+        if (allowUnapprovedSensitive) {
+          return `[UNAPPROVED SENSITIVE CLAIM: USE WITH CAUTION] ${draftText}`.trim();
+        }
+        return "[BLOCKED: Requires human approval before export]";
+      }
+      return draftText;
+    };
+
+    // 2. Determine spreadsheet structure (original-format vs flat fallback)
+    const hasOriginalFormat = !!project.originalHeadersJson && project.mappedAnswerColIdx !== null;
+    let exportHeaders: string[] = [];
+    let exportRows: string[][] = [];
+
+    if (hasOriginalFormat) {
+      try {
+        exportHeaders = parseStringArray(project.originalHeadersJson!);
+        const sortedQuestions = [...project.questions].sort((a, b) => (a.rowIndex ?? 0) - (b.rowIndex ?? 0));
+
+        exportRows = sortedQuestions.map(q => {
+          if (q.originalRowJson) {
+            const row = parseStringArray(q.originalRowJson);
+            const targetIdx = project.mappedAnswerColIdx!;
+            while (row.length <= targetIdx) {
+              row.push("");
+            }
+            row[targetIdx] = getProcessedAnswer(q);
+            return row;
+          } else {
+            const row = Array(exportHeaders.length).fill("");
+            row[0] = q.sourceLocation || "";
+            row[1] = q.originalText;
+            const targetIdx = project.mappedAnswerColIdx!;
+            while (row.length <= targetIdx) {
+              row.push("");
+            }
+            row[targetIdx] = getProcessedAnswer(q);
+            return row;
+          }
+        });
+      } catch (err) {
+        console.error("Failed to reconstruct original format, falling back to flat sheet", err);
+      }
+    }
+
+    if (exportHeaders.length === 0) {
+      exportHeaders = ["Question Location", "Question Text", "Category", "Status", "RAG Confidence", "Assignee", "Drafted Answer"];
+      exportRows = project.questions.map(q => [
+        q.sourceLocation || "",
+        q.originalText,
+        q.category,
+        q.status,
+        q.confidenceLabel,
+        q.assignedUser?.name || "Unassigned",
+        getProcessedAnswer(q)
+      ]);
+    }
+
+    // 3. Export based on format
     if (format === "csv") {
-      const headers = ["Question Location", "Question Text", "Category", "Status", "RAG Confidence", "Assignee", "Drafted Answer"];
-
-      const rows = project.questions.map(q => {
-        const location = (q.sourceLocation || "").replace(/"/g, '""');
-        const text = q.originalText.replace(/"/g, '""');
-        const cat = q.category.replace(/"/g, '""');
-        const status = q.status;
-        const confidence = q.confidenceLabel;
-        const assignee = (q.assignedUser?.name || "Unassigned").replace(/"/g, '""');
-        const answer = (q.answerDraft?.text || "").replace(/"/g, '""');
-
-        return `"${location}","${text}","${cat}","${status}","${confidence}","${assignee}","${answer}"`;
+      const csvRows = exportRows.map(row => {
+        return row.map(cell => `"${String(cell || "").replace(/"/g, '""')}"`).join(",");
       });
 
-      const csvContent = [headers.map(h => `"${h}"`).join(","), ...rows].join("\n");
+      const csvContent = [exportHeaders.map(h => `"${String(h || "").replace(/"/g, '""')}"`).join(","), ...csvRows].join("\n");
 
       return new NextResponse(csvContent, {
         headers: {
@@ -72,25 +151,12 @@ export async function GET(
 
     if (format === "xlsx") {
       const wb = XLSX.utils.book_new();
-
-      const headers = ["Question Location", "Question Text", "Category", "Status", "RAG Confidence", "Assignee", "Drafted Answer"];
-
-      const rows = project.questions.map(q => [
-        q.sourceLocation || "",
-        q.originalText,
-        q.category,
-        q.status,
-        q.confidenceLabel,
-        q.assignedUser?.name || "Unassigned",
-        q.answerDraft?.text || ""
-      ]);
-
-      const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+      const ws = XLSX.utils.aoa_to_sheet([exportHeaders, ...exportRows]);
 
       // Set premium auto-fitting column widths
-      const colWidths = headers.map((h, i) => {
+      const colWidths = exportHeaders.map((h, i) => {
         let maxLen = h.length;
-        rows.forEach(row => {
+        exportRows.forEach(row => {
           const cellVal = String(row[i] || "");
           if (cellVal.length > maxLen) {
             maxLen = cellVal.length;
@@ -136,8 +202,9 @@ export async function GET(
           md += `- **Assignee:** ${q.assignedUser?.name || "Unassigned"}\n\n`;
           
           md += `**Response:**\n`;
-          if (q.answerDraft?.text) {
-            md += `${q.answerDraft.text}\n\n`;
+          const processedAnswer = getProcessedAnswer(q);
+          if (processedAnswer) {
+            md += `${processedAnswer}\n\n`;
           } else {
             md += `*No response drafted.*\n\n`;
           }
@@ -162,7 +229,20 @@ export async function GET(
     }
 
     if (format === "json") {
-      return new NextResponse(JSON.stringify(project, null, 2), {
+      const processedProject = {
+        ...project,
+        questions: project.questions.map(q => {
+          const processedDraft = q.answerDraft ? {
+            ...q.answerDraft,
+            text: getProcessedAnswer(q)
+          } : null;
+          return {
+            ...q,
+            answerDraft: processedDraft
+          };
+        })
+      };
+      return new NextResponse(JSON.stringify(processedProject, null, 2), {
         headers: {
           "Content-Type": "application/json; charset=utf-8",
           "Content-Disposition": `attachment; filename="${safeFileName}_export.json"`

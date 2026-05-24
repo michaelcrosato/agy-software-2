@@ -304,5 +304,52 @@ test.describe("AnswerFlow AI End-to-End User Flow Tests", () => {
     await page.waitForTimeout(500);
     await expect(page.locator("span:text-is('Approved')").first()).toBeVisible();
   });
+
+  test("should enforce sensitive claim controls in workspace editor and export dropdown", async ({ page }) => {
+    // 1. Navigate to projects and open review workspace for seeded project
+    await page.click("text=Projects");
+    await page.click("div.group:has-text('Enterprise Security Audit 2026') button:has-text('Open Review Workspace')");
+    await page.waitForTimeout(500);
+
+    // 2. Select Question 3 ("Do you offer data hosting in the European Union (EU)?")
+    // Question 3 has category "Compliance" (sensitive) and status "Needs Review" (unapproved)
+    await page.click("text=Row 81");
+    await page.waitForTimeout(500);
+
+    // Assert that the visual Sensitive Claim Control alert banner is rendered in the active editor
+    const sensitiveBanner = page.locator("#sensitive-claim-banner");
+    await expect(sensitiveBanner).toBeVisible();
+    await expect(sensitiveBanner).toContainText("Sensitive Claim Control Active");
+    await expect(sensitiveBanner).toContainText("Compliance");
+
+    // 3. Open Export dropdown
+    const exportBtn = page.locator("button:has-text('Export Response')");
+    await exportBtn.click();
+    await page.waitForTimeout(200);
+
+    // Assert that the exclamation badge is visible on the button
+    const sensitiveBadge = page.locator("#unapproved-sensitive-badge");
+    await expect(sensitiveBadge).toBeVisible();
+
+    // Assert that the warning box inside the dropdown is displayed
+    const warningBox = page.locator("#unapproved-sensitive-warning-box");
+    await expect(warningBox).toBeVisible();
+    await expect(warningBox).toContainText("Unapproved Sensitive Claims");
+    await expect(warningBox).toContainText("sensitive answers will be redacted");
+
+    // 4. Assert export links by default DO NOT have the bypass query param
+    const xlsxLink = page.locator("#export-xlsx-link");
+    const csvLink = page.locator("#export-csv-link");
+    await expect(xlsxLink).toHaveAttribute("href", /export\?format=xlsx$/);
+    await expect(csvLink).toHaveAttribute("href", /export\?format=csv$/);
+
+    // 5. Toggle the checkbox to allow unapproved sensitive claims
+    await page.click("#allow-unapproved-checkbox");
+    await page.waitForTimeout(200);
+
+    // Assert export links now DO contain the bypass query param
+    await expect(xlsxLink).toHaveAttribute("href", /export\?format=xlsx&allowUnapprovedSensitive=true$/);
+    await expect(csvLink).toHaveAttribute("href", /export\?format=csv&allowUnapprovedSensitive=true$/);
+  });
 });
 

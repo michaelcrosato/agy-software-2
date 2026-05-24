@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { performLocalRAG } from "../lib/rag";
 import { prisma } from "../lib/prisma";
+import { GET as exportGET } from "../app/api/projects/[id]/export/route";
+
+function findCsvRow(csvText: string, sourceLocation: string) {
+  return csvText
+    .split(/\r?\n/)
+    .find(row => row.startsWith(`"${sourceLocation}",`));
+}
 
 describe("AnswerFlow AI Local RAG Engine", () => {
   beforeAll(async () => {
@@ -30,5 +37,46 @@ describe("AnswerFlow AI Local RAG Engine", () => {
     expect(result.confidence).toBe("No Source");
     expect(result.text).toContain("No matching information was found");
     expect(result.citations.length).toBe(0);
+  });
+
+  describe("Sensitive Claim Controls Export Integration", () => {
+    it("should redact unapproved sensitive questions in export by default", async () => {
+      const project = await prisma.responseProject.findFirst({
+        where: { name: "Enterprise Security Audit 2026" }
+      });
+      expect(project).toBeDefined();
+      if (!project) return;
+
+      const req = new Request(`http://localhost/api/projects/${project.id}/export?format=csv`);
+      const response = await exportGET(req, { params: Promise.resolve({ id: project.id }) });
+      expect(response.status).toBe(200);
+
+      const text = await response.text();
+      // Question 1 is category: Security, status: Needs Review (Unapproved)
+      // Drafted answer should be blocked/redacted
+      const row12 = findCsvRow(text, "Row 12");
+      expect(row12).toBeDefined();
+      expect(row12).toContain("[BLOCKED: Requires human approval before export]");
+      expect(row12).not.toContain("Yes, we support Google Workspace SSO");
+    });
+
+    it("should allow bypassing redaction but prepend warnings when query param is true", async () => {
+      const project = await prisma.responseProject.findFirst({
+        where: { name: "Enterprise Security Audit 2026" }
+      });
+      expect(project).toBeDefined();
+      if (!project) return;
+
+      const req = new Request(`http://localhost/api/projects/${project.id}/export?format=csv&allowUnapprovedSensitive=true`);
+      const response = await exportGET(req, { params: Promise.resolve({ id: project.id }) });
+      expect(response.status).toBe(200);
+
+      const text = await response.text();
+      // Question 1 drafted answer should be present but contain the unapproved prefix warning
+      const row12 = findCsvRow(text, "Row 12");
+      expect(row12).toBeDefined();
+      expect(row12).toContain("[UNAPPROVED SENSITIVE CLAIM: USE WITH CAUTION] Yes, we support Google Workspace SSO");
+      expect(text).not.toContain('"[BLOCKED: Requires human approval before export]"');
+    });
   });
 });

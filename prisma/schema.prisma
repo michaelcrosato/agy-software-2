@@ -42,14 +42,16 @@ model SourceChunk {
 }
 
 model ResponseProject {
-  id           String     @id @default(uuid())
-  name         String
-  customerName String
-  dueDate      DateTime?
-  status       String     @default("Uploaded") // "Uploaded", "Processing", "In Review", "Completed"
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-  questions    Question[]
+  id                  String     @id @default(uuid())
+  name                String
+  customerName        String
+  dueDate             DateTime?
+  status              String     @default("Uploaded") // "Uploaded", "Processing", "In Review", "Completed"
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+  questions           Question[]
+  originalHeadersJson String?    // JSON array of original headers
+  mappedAnswerColIdx  Int?       // target answer column index
 }
 
 model Question {
@@ -71,6 +73,8 @@ model Question {
   
   answerDraft     AnswerDraft?
   comments        Comment[]
+  originalRowJson String?         // JSON array of original row cells
+  rowIndex        Int?            // 0-indexed row number in spreadsheet
 }
 
 model AnswerDraft {

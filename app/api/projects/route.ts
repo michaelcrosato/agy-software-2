@@ -1,6 +1,26 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+function parseOptionalIndex(value: unknown): number | null {
+  if (value === undefined || value === null || value === "") return null;
+
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
+}
+
+function coerceJsonArray(value: unknown): string | null {
+  if (value === undefined || value === null || value === "") return null;
+
+  try {
+    const parsed = typeof value === "string" ? JSON.parse(value) : value;
+    if (!Array.isArray(parsed)) return null;
+
+    return JSON.stringify(parsed.map(cell => String(cell ?? "")));
+  } catch {
+    return null;
+  }
+}
+
 export async function GET() {
   try {
     const projects = await prisma.responseProject.findMany({
@@ -23,7 +43,8 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const { name, customerName, dueDate, questionnaireText, questions } = await req.json();
+    const { name, customerName, dueDate, questionnaireText, questions, originalHeadersJson, mappedAnswerColIdx } = await req.json();
+    const parsedAnswerColIdx = parseOptionalIndex(mappedAnswerColIdx);
 
     if (!name || !customerName) {
       return NextResponse.json({ message: "Missing required fields" }, { status: 400 });
@@ -36,6 +57,8 @@ export async function POST(req: Request) {
         customerName,
         dueDate: dueDate ? new Date(dueDate) : null,
         status: "Processing",
+        originalHeadersJson: coerceJsonArray(originalHeadersJson),
+        mappedAnswerColIdx: parsedAnswerColIdx,
       }
     });
 
@@ -44,6 +67,8 @@ export async function POST(req: Request) {
       text: string;
       category?: string;
       sourceLocation?: string;
+      originalRowJson?: string;
+      rowIndex?: number;
     }
 
     let parsedQuestions: InputQuestion[] = [];
@@ -52,7 +77,9 @@ export async function POST(req: Request) {
       parsedQuestions = questions.map((q: any) => ({
         text: String(q.text || "").trim(),
         category: String(q.category || "General").trim(),
-        sourceLocation: String(q.sourceLocation || "").trim()
+        sourceLocation: String(q.sourceLocation || "").trim(),
+        originalRowJson: coerceJsonArray(q.originalRowJson) || undefined,
+        rowIndex: parseOptionalIndex(q.rowIndex) ?? undefined
       }));
     } else if (questionnaireText && questionnaireText.trim().length > 0) {
       const rawLines = questionnaireText
@@ -69,7 +96,8 @@ export async function POST(req: Request) {
         return {
           text,
           category,
-          sourceLocation: `Row ${i + 1}`
+          sourceLocation: `Row ${i + 1}`,
+          rowIndex: i
         };
       });
     }
@@ -93,7 +121,8 @@ export async function POST(req: Request) {
         return {
           text,
           category,
-          sourceLocation: `Row ${i + 1}`
+          sourceLocation: `Row ${i + 1}`,
+          rowIndex: i
         };
       });
     }
@@ -114,6 +143,8 @@ export async function POST(req: Request) {
           status: "Needs Review",
           confidenceLabel: "Low",
           assignedUserId: defaultUser?.id || null,
+          originalRowJson: qData.originalRowJson || null,
+          rowIndex: qData.rowIndex !== undefined ? qData.rowIndex : i,
         }
       });
 
