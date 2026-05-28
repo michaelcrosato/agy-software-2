@@ -37,11 +37,20 @@ export async function PUT(
     });
 
     // 3. Update answer draft if provided
-    if (answerText !== undefined && updatedQuestion.answerDraft) {
-      await prisma.answerDraft.update({
-        where: { id: updatedQuestion.answerDraft.id },
-        data: { text: answerText }
-      });
+    if (answerText !== undefined) {
+      if (updatedQuestion.answerDraft) {
+        await prisma.answerDraft.update({
+          where: { id: updatedQuestion.answerDraft.id },
+          data: { text: answerText }
+        });
+      } else {
+        await prisma.answerDraft.create({
+          data: {
+            questionId: id,
+            text: answerText
+          }
+        });
+      }
     }
 
     // 4. Save to Approved Reusable Answers Library if requested and status is "Approved"
