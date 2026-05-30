@@ -140,3 +140,11 @@ AnswerFlow AI operates on strict codebase guidelines defined in `docs/AXIOMS.md`
 4. **Substrate Automation Integrity:** Controlled by `assert-gate-integrity.ps1` to prevent modifications to core operations scripts listed in `manifest.txt`.
 
 Developed with 💜 by Michael Crosato and the Google DeepMind Antigravity Team.
+
+## 🤖 Autonomous agent workflow
+
+AFK-capable agent sessions use dedicated root docs and scripts:
+- Read `AGENTS.md`, `GOAL.md`, `ROADMAP.md`, and `docs/ai/REPO_MAP.md` before edits.
+- Use `npm run agent:bootstrap` for first-run setup.
+- Use `npm run agent:status` for quick context and `npm run agent:check` for lint/typecheck/test/format.
+- Keep changes scoped by ticket in `tickets/TICKET*.md`.
