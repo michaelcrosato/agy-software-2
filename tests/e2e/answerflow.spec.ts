@@ -247,9 +247,9 @@ test.describe("AnswerFlow AI End-to-End User Flow Tests", () => {
 
     // Click "Draft with AI" button
     await page.click("button:has-text('Draft with AI')");
-    await page.waitForTimeout(1000); // Wait for local RAG execution
 
-    // Check that the textarea is populated with the RAG answer
+    // Check that the textarea is populated with the RAG answer (auto-retries up to 10s)
+    await expect(editArea).not.toHaveValue("", { timeout: 10000 });
     const newVal = await editArea.inputValue();
     expect(newVal.length).toBeGreaterThan(10);
     
@@ -272,12 +272,10 @@ test.describe("AnswerFlow AI End-to-End User Flow Tests", () => {
 
     // Click 'Draft with AI' button
     await page.click("#draft-with-ai-btn");
-    await page.waitForTimeout(1000); // Wait for RAG execution
 
     // Check that the textarea is populated with the formatted answer
     const editArea = page.locator("textarea").first();
-    const newVal = await editArea.inputValue();
-    expect(newVal.startsWith("Security Policy Verification:")).toBe(true);
+    await expect(editArea).toHaveValue(/^Security Policy Verification:/, { timeout: 10000 });
   });
 
   test("should allow question similarity clustering and bulk actions in workspace", async ({ page }) => {
