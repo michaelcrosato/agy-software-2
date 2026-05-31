@@ -1,0 +1,2 @@
+- [x] Cycle 0: Initialize /plan state files and run baseline checks.
+- [ ] Cycle 1: Fix typescript build errors to establish clean baseline.

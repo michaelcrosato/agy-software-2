@@ -199,7 +199,7 @@ export async function GET(
       // Group questions by category
       const categories = ["Security", "Infrastructure", "Compliance", "General"];
       for (const cat of categories) {
-        const catQuestions = project.questions.filter(q => q.category === cat);
+        const catQuestions = project.questions.filter((q: any) => q.category === cat);
         if (catQuestions.length === 0) continue;
 
         md += `## Section: ${cat}\n\n`;
@@ -274,7 +274,7 @@ export async function GET(
                 const paragraphsAndTables: any[] = [];
 
                 for (const cat of categories) {
-                  const catQuestions = project.questions.filter(q => q.category === cat);
+                  const catQuestions = project.questions.filter((q: any) => q.category === cat);
                   if (catQuestions.length === 0) continue;
 
                   paragraphsAndTables.push(
@@ -405,7 +405,7 @@ export async function GET(
     if (format === "json") {
       const processedProject = {
         ...project,
-        questions: project.questions.map(q => {
+        questions: project.questions.map((q: any) => {
           const processedDraft = q.answerDraft ? {
             ...q.answerDraft,
             text: getProcessedAnswer(q)

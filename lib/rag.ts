@@ -232,11 +232,11 @@ export async function performLocalRAG(questionText: string, tone?: string): Prom
   const N = allChunks.length;
   const allTerms = new Set<string>();
 
-  const chunkDocs = allChunks.map(chunk => {
+  const chunkDocs = allChunks.map((chunk: any) => {
     const tokens = tokenize(chunk.text);
     const stems = tokens.map(t => stem(t));
     const terms: Record<string, number> = {};
-    stems.forEach(s => {
+    stems.forEach((s: any) => {
       terms[s] = (terms[s] || 0) + 1;
       allTerms.add(s);
     });
@@ -254,17 +254,17 @@ export async function performLocalRAG(questionText: string, tone?: string): Prom
   queryStems.forEach(s => allTerms.add(s));
 
   const cosineMatches = calculateCosineSimilarity(queryStems, chunkDocs, allTerms);
-  const cosineScoresMap = new Map(cosineMatches.map(m => [m.id, m.score]));
+  const cosineScoresMap = new Map(cosineMatches.map((m: any) => [m.id, m.score]));
 
-  const totalLength = chunkDocs.reduce((sum, d) => sum + d.length, 0);
+  const totalLength = chunkDocs.reduce((sum: any, d: any) => sum + d.length, 0);
   const avgdl = N > 0 ? totalLength / N : 1;
 
   const df: Record<string, number> = {};
   queryTerms.forEach(term => {
     const termStem = stem(term);
     let count = 0;
-    chunkDocs.forEach(doc => {
-      const hasTerm = doc.stems.some(s => s === termStem || s.includes(termStem) || termStem.includes(s));
+    chunkDocs.forEach((doc: any) => {
+      const hasTerm = doc.stems.some((s: any) => s === termStem || s.includes(termStem) || termStem.includes(s));
       if (hasTerm) count++;
     });
     df[term] = count;
@@ -279,12 +279,12 @@ export async function performLocalRAG(questionText: string, tone?: string): Prom
   const k1 = 1.2;
   const b = 0.75;
 
-  const matches = chunkDocs.map(doc => {
+  const matches = chunkDocs.map((doc: any) => {
     let score = 0;
     queryTerms.forEach(term => {
       const termStem = stem(term);
       let f = 0;
-      doc.stems.forEach(s => {
+      doc.stems.forEach((s: any) => {
         if (s === termStem || s.includes(termStem) || termStem.includes(s)) {
           f += 1;
         }
@@ -303,19 +303,19 @@ export async function performLocalRAG(questionText: string, tone?: string): Prom
 
     return { chunk: doc.chunk, score: combinedScore, bm25Score: score, cosineScore };
   })
-  .filter(item => item.score > 0)
-  .sort((a, b) => b.score - a.score);
+  .filter((item: any) => item.score > 0)
+  .sort((a: any, b: any) => b.score - a.score);
 
   // 3. Score approved answers library using BM25 and TF-IDF Cosine Similarity
   const N_lib = allApproved.length;
   const allTerms_lib = new Set<string>();
 
-  const approvedDocs = allApproved.map(approved => {
+  const approvedDocs = allApproved.map((approved: any) => {
     const combinedText = `${approved.canonicalQuestion} ${approved.answerText}`;
     const tokens = tokenize(combinedText);
     const stems = tokens.map(t => stem(t));
     const terms: Record<string, number> = {};
-    stems.forEach(s => {
+    stems.forEach((s: any) => {
       terms[s] = (terms[s] || 0) + 1;
       allTerms_lib.add(s);
     });
@@ -332,17 +332,17 @@ export async function performLocalRAG(questionText: string, tone?: string): Prom
   queryStems.forEach(s => allTerms_lib.add(s));
 
   const cosineMatches_lib = calculateCosineSimilarity(queryStems, approvedDocs, allTerms_lib);
-  const cosineScoresMap_lib = new Map(cosineMatches_lib.map(m => [m.id, m.score]));
+  const cosineScoresMap_lib = new Map(cosineMatches_lib.map((m: any) => [m.id, m.score]));
 
-  const totalLength_lib = approvedDocs.reduce((sum, d) => sum + d.length, 0);
+  const totalLength_lib = approvedDocs.reduce((sum: any, d: any) => sum + d.length, 0);
   const avgdl_lib = N_lib > 0 ? totalLength_lib / N_lib : 1;
 
   const df_lib: Record<string, number> = {};
   queryTerms.forEach(term => {
     const termStem = stem(term);
     let count = 0;
-    approvedDocs.forEach(doc => {
-      const hasTerm = doc.stems.some(s => s === termStem || s.includes(termStem) || termStem.includes(s));
+    approvedDocs.forEach((doc: any) => {
+      const hasTerm = doc.stems.some((s: any) => s === termStem || s.includes(termStem) || termStem.includes(s));
       if (hasTerm) count++;
     });
     df_lib[term] = count;
@@ -354,12 +354,12 @@ export async function performLocalRAG(questionText: string, tone?: string): Prom
     idfs_lib[term] = Math.max(0.0001, Math.log((N_lib - n + 0.5) / (n + 0.5) + 1));
   });
 
-  const approvedMatches = approvedDocs.map(doc => {
+  const approvedMatches = approvedDocs.map((doc: any) => {
     let score = 0;
     queryTerms.forEach(term => {
       const termStem = stem(term);
       let f = 0;
-      doc.stems.forEach(s => {
+      doc.stems.forEach((s: any) => {
         if (s === termStem || s.includes(termStem) || termStem.includes(s)) {
           f += 1;
         }
@@ -378,8 +378,8 @@ export async function performLocalRAG(questionText: string, tone?: string): Prom
 
     return { approved: doc.approved, score: combinedScore, bm25Score: score, cosineScore };
   })
-  .filter(item => item.score > 0)
-  .sort((a, b) => b.score - a.score);
+  .filter((item: any) => item.score > 0)
+  .sort((a: any, b: any) => b.score - a.score);
 
   // Debug logs for calibration
   console.log(`[RAG DEBUG] Question: "${questionText}"`);
@@ -419,7 +419,7 @@ export async function performLocalRAG(questionText: string, tone?: string): Prom
     const rawText = bestChunk.text;
     const answerText = tone ? formatAnswerByTone(rawText, tone, questionText) : rawText;
     
-    const citations = matches.slice(0, 2).map(m => ({
+    const citations = matches.slice(0, 2).map((m: any) => ({
       chunkId: m.chunk.id,
       excerpt: m.chunk.text,
     }));
