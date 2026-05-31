@@ -41,15 +41,17 @@ export async function POST(req: Request) {
     const rawParagraphs = text.split(/\n\s*\n/).map((p: string) => p.trim()).filter((p: string) => p.length > 0);
     
     // Insert chunks
-    for (let i = 0; i < rawParagraphs.length; i++) {
-      await prisma.sourceChunk.create({
-        data: {
-          sourceDocumentId: doc.id,
-          chunkIndex: i,
-          pageNumber: Math.floor(i / 2) + 1,
-          sectionTitle: "Section " + (i + 1),
-          text: rawParagraphs[i],
-        }
+    const chunkData = rawParagraphs.map((text: string, i: number) => ({
+      sourceDocumentId: doc.id,
+      chunkIndex: i,
+      pageNumber: Math.floor(i / 2) + 1,
+      sectionTitle: "Section " + (i + 1),
+      text: text,
+    }));
+
+    if (chunkData.length > 0) {
+      await prisma.sourceChunk.createMany({
+        data: chunkData
       });
     }
 
