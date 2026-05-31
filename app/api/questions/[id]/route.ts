@@ -22,7 +22,7 @@ export async function PUT(
     }
 
     // 2. Perform updates
-    const updateData: any = {};
+    const updateData: { status?: string; assignedUserId?: string | null; category?: string } = {};
     if (status !== undefined) updateData.status = status;
     if (assignedUserId !== undefined) updateData.assignedUserId = assignedUserId;
     if (category !== undefined) updateData.category = category;
@@ -114,9 +114,9 @@ export async function PUT(
     });
 
     return NextResponse.json(finalQuestion);
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("PUT question error:", err);
-    return NextResponse.json({ message: "Server error", error: err.message }, { status: 500 });
+    return NextResponse.json({ message: "Server error", error: err instanceof Error ? err.message : "Unknown error" }, { status: 500 });
   }
 }
 
@@ -145,8 +145,8 @@ export async function POST(
     });
 
     return NextResponse.json(comment, { status: 201 });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("POST question comment error:", err);
-    return NextResponse.json({ message: "Server error", error: err.message }, { status: 500 });
+    return NextResponse.json({ message: "Server error", error: err instanceof Error ? err.message : "Unknown error" }, { status: 500 });
   }
 }

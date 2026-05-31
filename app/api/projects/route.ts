@@ -74,7 +74,7 @@ export async function POST(req: Request) {
     let parsedQuestions: InputQuestion[] = [];
 
     if (questions && Array.isArray(questions) && questions.length > 0) {
-      parsedQuestions = questions.map((q: any) => ({
+      parsedQuestions = questions.map((q: Partial<{text: string; category: string; sourceLocation: string; originalRowJson: string; rowIndex: number}>) => ({
         text: String(q.text || "").trim(),
         category: String(q.category || "General").trim(),
         sourceLocation: String(q.sourceLocation || "").trim(),
@@ -171,8 +171,8 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json(updatedProject, { status: 201 });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("POST projects error:", err);
-    return NextResponse.json({ message: "Server error", error: err.message }, { status: 500 });
+    return NextResponse.json({ message: "Server error", error: err instanceof Error ? err.message : "Unknown error" }, { status: 500 });
   }
 }

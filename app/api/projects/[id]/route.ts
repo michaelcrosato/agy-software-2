@@ -43,9 +43,9 @@ export async function GET(
     }
 
     return NextResponse.json(project);
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("GET project detail error:", err);
-    return NextResponse.json({ message: "Server error", error: err.message }, { status: 500 });
+    return NextResponse.json({ message: "Server error", error: err instanceof Error ? err.message : "Unknown error" }, { status: 500 });
   }
 }
 
@@ -143,8 +143,8 @@ export async function POST(
     });
 
     return NextResponse.json({ message: "Bulk RAG drafting complete", project });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("POST project AI RAG error:", err);
-    return NextResponse.json({ message: "Server error", error: err.message }, { status: 500 });
+    return NextResponse.json({ message: "Server error", error: err instanceof Error ? err.message : "Unknown error" }, { status: 500 });
   }
 }
