@@ -131,30 +131,39 @@ export async function POST(req: Request) {
     const defaultUser = await prisma.user.findFirst();
 
     // 3. Create question and empty answer draft records
-    for (let i = 0; i < parsedQuestions.length; i++) {
-      const qData = parsedQuestions[i];
-      const question = await prisma.question.create({
-        data: {
-          projectId: project.id,
-          originalText: qData.text,
-          category: qData.category || "General",
-          answerType: "Short Text",
-          sourceLocation: qData.sourceLocation || `Row ${i + 1}`,
-          status: "Needs Review",
-          confidenceLabel: "Low",
-          assignedUserId: defaultUser?.id || null,
-          originalRowJson: qData.originalRowJson || null,
-          rowIndex: qData.rowIndex !== undefined ? qData.rowIndex : i,
-        }
+    const questionsData = parsedQuestions.map((qData, i) => ({
+      projectId: project.id,
+      originalText: qData.text,
+      category: qData.category || "General",
+      answerType: "Short Text",
+      sourceLocation: qData.sourceLocation || `Row ${i + 1}`,
+      status: "Needs Review",
+      confidenceLabel: "Low",
+      assignedUserId: defaultUser?.id || null,
+      originalRowJson: qData.originalRowJson || null,
+      rowIndex: qData.rowIndex !== undefined ? qData.rowIndex : i,
+    }));
+
+    if (questionsData.length > 0) {
+      await prisma.question.createMany({
+        data: questionsData
       });
 
-      // Create initial empty draft
-      await prisma.answerDraft.create({
-        data: {
-          questionId: question.id,
-          text: "",
-        }
+      const createdQuestions = await prisma.question.findMany({
+        where: { projectId: project.id },
+        select: { id: true }
       });
+
+      const draftsData = createdQuestions.map(q => ({
+        questionId: q.id,
+        text: "",
+      }));
+
+      if (draftsData.length > 0) {
+        await prisma.answerDraft.createMany({
+          data: draftsData
+        });
+      }
     }
 
     // Update project status to "In Review"
