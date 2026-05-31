@@ -20,14 +20,16 @@ export async function GET(req: Request) {
         include: {
           approvedBy: true
         },
-        orderBy: { usageCount: "desc" }
+        orderBy: { usageCount: "desc" },
+        take: 50
       });
     } else {
       approvedAnswers = await prisma.approvedAnswer.findMany({
         include: {
           approvedBy: true
         },
-        orderBy: { usageCount: "desc" }
+        orderBy: { usageCount: "desc" },
+        take: 50
       });
     }
 
