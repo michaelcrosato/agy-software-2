@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Sparkles, Users, FileText, Library, Briefcase, Database } from "lucide-react";
 
@@ -35,6 +35,19 @@ export const MOCK_USERS: MockUser[] = [
 export default function Navbar() {
   const [currentUser, setCurrentUser] = useState<MockUser | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   useEffect(() => {
     const savedUserId = localStorage.getItem("feedflow_user_id");
@@ -102,7 +115,7 @@ export default function Navbar() {
 
           {/* User Switcher Dropdown */}
           {currentUser && (
-            <div className="relative">
+            <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setDropdownOpen(!dropdownOpen)}
                 className="flex items-center gap-2 rounded-xl border border-white/5 bg-white/[0.02] p-1.5 pr-3 hover:bg-white/[0.06] transition-colors focus:outline-none"
