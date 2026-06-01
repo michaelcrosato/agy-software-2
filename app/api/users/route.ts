@@ -7,9 +7,9 @@ export async function GET() {
       orderBy: { name: "asc" }
     });
     return NextResponse.json(users);
-  } catch (err: any) {
-    console.error("GET users error:", err);
-    return NextResponse.json({ message: "Server error", error: err.message }, { status: 500 });
+  } catch (err: unknown) {
+    console.error("GET users error:", err instanceof Error ? err.message : String(err));
+    return NextResponse.json({ message: "Server error", error: err instanceof Error ? err.message : "Unknown error" }, { status: 500 });
   }
 }
 
@@ -40,9 +40,9 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json(newUser, { status: 201 });
-  } catch (err: any) {
-    console.error("POST users error:", err);
-    return NextResponse.json({ message: "Server error", error: err.message }, { status: 500 });
+  } catch (err: unknown) {
+    console.error("POST users error:", err instanceof Error ? err.message : String(err));
+    return NextResponse.json({ message: "Server error", error: err instanceof Error ? err.message : "Unknown error" }, { status: 500 });
   }
 }
 

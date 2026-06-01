@@ -425,8 +425,8 @@ export async function GET(
     }
 
     return NextResponse.json({ message: "Unsupported export format" }, { status: 400 });
-  } catch (err: any) {
-    console.error("Export project error:", err);
-    return NextResponse.json({ message: "Server error", error: err.message }, { status: 500 });
+  } catch (err: unknown) {
+    console.error("Export project error:", err instanceof Error ? err.message : String(err));
+    return NextResponse.json({ message: "Server error", error: err instanceof Error ? err.message : "Unknown error" }, { status: 500 });
   }
 }

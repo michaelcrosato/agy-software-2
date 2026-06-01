@@ -34,9 +34,9 @@ export async function GET(req: Request) {
     }
 
     return NextResponse.json(approvedAnswers);
-  } catch (err: any) {
-    console.error("GET library error:", err);
-    return NextResponse.json({ message: "Server error", error: err.message }, { status: 500 });
+  } catch (err: unknown) {
+    console.error("GET library error:", err instanceof Error ? err.message : String(err));
+    return NextResponse.json({ message: "Server error", error: err instanceof Error ? err.message : "Unknown error" }, { status: 500 });
   }
 }
 
@@ -62,8 +62,8 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json(approved, { status: 201 });
-  } catch (err: any) {
-    console.error("POST library error:", err);
-    return NextResponse.json({ message: "Server error", error: err.message }, { status: 500 });
+  } catch (err: unknown) {
+    console.error("POST library error:", err instanceof Error ? err.message : String(err));
+    return NextResponse.json({ message: "Server error", error: err instanceof Error ? err.message : "Unknown error" }, { status: 500 });
   }
 }

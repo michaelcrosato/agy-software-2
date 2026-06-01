@@ -48,8 +48,8 @@ export async function POST(req: Request) {
     } else {
       return NextResponse.json({ message: "Unsupported file format for parsing" }, { status: 400 });
     }
-  } catch (err: any) {
-    console.error("Document parsing error:", err);
-    return NextResponse.json({ message: "Parsing failed", error: err.message }, { status: 500 });
+  } catch (err: unknown) {
+    console.error("Document parsing error:", err instanceof Error ? err.message : String(err));
+    return NextResponse.json({ message: "Parsing failed", error: err instanceof Error ? err.message : "Unknown error" }, { status: 500 });
   }
 }

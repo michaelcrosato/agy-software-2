@@ -106,10 +106,10 @@ export async function POST(
     });
 
     return NextResponse.json(updatedQuestion);
-  } catch (err: any) {
-    console.error("POST question AI draft error:", err);
+  } catch (err: unknown) {
+    console.error("POST question AI draft error:", err instanceof Error ? err.message : String(err));
     return NextResponse.json(
-      { message: "Server error", error: err.message },
+      { message: "Server error", error: err instanceof Error ? err.message : "Unknown error" },
       { status: 500 }
     );
   }

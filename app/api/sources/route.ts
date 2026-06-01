@@ -12,9 +12,9 @@ export async function GET() {
       orderBy: { createdAt: "desc" }
     });
     return NextResponse.json(sources);
-  } catch (err: any) {
-    console.error("GET sources error:", err);
-    return NextResponse.json({ message: "Server error", error: err.message }, { status: 500 });
+  } catch (err: unknown) {
+    console.error("GET sources error:", err instanceof Error ? err.message : String(err));
+    return NextResponse.json({ message: "Server error", error: err instanceof Error ? err.message : "Unknown error" }, { status: 500 });
   }
 }
 
@@ -61,8 +61,8 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json(completedDoc, { status: 201 });
-  } catch (err: any) {
-    console.error("POST sources error:", err);
-    return NextResponse.json({ message: "Server error", error: err.message }, { status: 500 });
+  } catch (err: unknown) {
+    console.error("POST sources error:", err instanceof Error ? err.message : String(err));
+    return NextResponse.json({ message: "Server error", error: err instanceof Error ? err.message : "Unknown error" }, { status: 500 });
   }
 }
