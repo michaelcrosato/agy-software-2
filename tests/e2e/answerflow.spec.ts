@@ -233,7 +233,7 @@ test.describe("AnswerFlow AI End-to-End User Flow Tests", () => {
   test("should allow auto-drafting a single question via RAG", async ({ page }) => {
     // Navigate to projects and open review workspace
     await page.click("text=Projects");
-    await page.click("text=Open Review Workspace");
+    await page.click("div.group:has-text('Enterprise Security Audit 2026') button:has-text('Open Review Workspace')");
     await page.waitForTimeout(500);
 
     // Let's clear the textarea and save it to simulate an empty draft

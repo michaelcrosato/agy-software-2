@@ -55,7 +55,7 @@ describe("AnswerFlow AI User API & Team Management", () => {
   });
 
   it("should prevent duplicate emails", async () => {
-    await expect(
+    await expect(() =>
       prisma.user.create({
         data: {
           name: "Another Name",

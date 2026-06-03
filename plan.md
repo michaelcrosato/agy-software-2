@@ -1,0 +1,5 @@
+1. **Understand Task Request**: Verify fixes that have been requested as per instructions and context. Fix any failing pipelines and execute tests correctly. Complete testing without blocking red tests by diagnosing issues and resolving them cleanly.
+2. **Execute E2E & Unit Tests**: Verified `npm run test:e2e` fails due to generic selector in `answerflow.spec.ts` for "Open Review Workspace". Changed selector in `should allow auto-drafting a single question via RAG` to `div.group:has-text('Enterprise Security Audit 2026') button:has-text('Open Review Workspace')` avoiding ambiguity.
+3. **Execute Vitest Tests**: Verified `npm run test` fails with unique constraint issue in `tests/users.test.ts`. Fixed the syntax issue replacing `await expect(prisma.user.create(...)).rejects.toThrow()` with `await expect(() => prisma.user.create(...)).rejects.toThrow()`.
+4. **Ensure Completion of Fixes**: Addressed all test failures cleanly and achieved 100% test pass rate. Tested `npm run agent:check` completely to ensure compliance with AFK criteria. Addressed documentation files (TICKET004.md and TICKET005.md).
+5. **Final Checks & Pre-commit Steps**: Submit changes.

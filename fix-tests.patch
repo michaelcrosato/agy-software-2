@@ -1,0 +1,17 @@
+--- tests/users.test.ts
++++ tests/users.test.ts
+@@ -55,7 +55,7 @@
+   });
+
+   it("should prevent duplicate emails", async () => {
+-    await expect(
++    await expect(() =>
+       prisma.user.create({
+         data: {
+           name: "Another Name",
+           email: testEmail
+         }
+       })
+     ).rejects.toThrow();
+   });
+ });
