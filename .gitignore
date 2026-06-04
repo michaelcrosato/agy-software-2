@@ -40,3 +40,6 @@ lerna-debug.log*
 # typescript cache
 *.tsbuildinfo
 next-env.d.ts
+
+*.db-shm
+*.db-wal
