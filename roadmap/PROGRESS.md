@@ -1,5 +1,12 @@
 # Progress Log (newest first — prepend, never append)
 
+## 2026-06-11 — Crash recovery: groom output committed, engine synced, PRs housekept
+
+- **What:** The operator's machine crashed after the 2026-06-10 `/groom` finished writing but before the session committed. This session recovered: re-ran the gate on the uncommitted tree (green), committed the groom output (19 features + seed.ts shim) and pushed it to `fix/recover-groom-output` → PR to `develop`. Separate commit on the same PR: synced `verify.sh`'s placeholder regex from template PR #23 (`<[A-Z_]{3,}>` → `<[A-Z][A-Z0-9_]{2,}>`) so digit-containing tokens like `<E2E_TEST_FRAMEWORK>` are caught once `src/` lands. Housekeeping: merged dependabot #5 and #4 (green patch bumps), closed stale pre-purge PRs #1/#2/#3 (retired harnesses).
+- **Verified:** `bash scripts/verify.sh` green twice (before the recovery commit and after the regex sync) — 19 features valid, 89 hook contract tests pass.
+- **Surprises:** `develop` is GitHub-protected (requires the `verify` status check), so the planned direct push was rejected; recovery went through a PR instead. Logged in DECISIONS.md.
+- **Next step:** `/work` F-0001 (Next.js scaffold) in a fresh session once this recovery PR is merged. One operator question open (staging host — Fly.io assumed, nothing blocked).
+
 ## 2026-06-10 — Groomed: 19 features from all 6 Now/Next bullets
 
 - **What:** `/groom` seeded the backlog: F-0001–F-0009 (P1: skeleton ×4, intake ×2, workspace, RAG engine, cited drafting) from the two "Now" bullets; F-0010–F-0019 (P2: tone profiles, KB pipeline+UI, team/comments/approval, clusters ×2, exports ×2) from the four "Next" bullets. "Later" left unscoped by design. Also hardened the `scripts/seed.ts` gate shim (silent-pass stub → fails unseeded in product mode) as factory work.
