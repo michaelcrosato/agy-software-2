@@ -1,0 +1,65 @@
+
+──── verify: typecheck ────
+──── typecheck: OK
+
+──── verify: lint ────
+Checked 8 files in 7ms. No fixes applied.
+──── lint: OK
+
+──── verify: unit tests ────
+
+ RUN  v4.1.8 C:/dev/agy-software-2
+
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  23:44:17
+   Duration  865ms (transform 37ms, setup 57ms, import 118ms, tests 101ms, environment 487ms)
+
+──── unit tests: OK
+
+──── verify: build ────
+▲ Next.js 16.2.9 (Turbopack)
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 973ms
+  Running TypeScript ...
+  Finished TypeScript in 1203ms ...
+  Collecting page data using 4 workers ...
+  Generating static pages using 4 workers (0/3) ...
+✓ Generating static pages using 4 workers (3/3) in 254ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+└ ○ /_not-found
+
+
+○  (Static)  prerendered as static content
+
+──── build: OK
+──── test coverage guard: OK (every src test file is wired into npm test)
+──── placeholder check: OK
+
+──── verify: features.json schema + invariants ────
+[update-state] valid: 19 features, 0 passing (evidence re-verified).
+──── features.json schema + invariants: OK
+
+──── verify: assertion shield ────
+[Assertion Shield] Check passed. No deleted assertions detected in test files.
+──── assertion shield: OK
+
+──── verify: engine lint (biome) ────
+Checked 4 files in 7ms. No fixes applied.
+──── engine lint (biome): OK
+
+──── verify: shellcheck (hooks + gate scripts) ────
+──── shellcheck (hooks + gate scripts): OK
+(actionlint not installed locally — enforced in CI)
+
+──── verify: hook contract tests ────
+hook contract tests: 89 passed, 0 failed
+──── hook contract tests: OK
+
+VERIFY-COMMIT: bec135b95d1a8bd020dda9c09f45a58c8045e104 @ 2026-06-11T06:45:13Z
+VERIFY: PASS (exit 0)
