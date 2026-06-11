@@ -35,3 +35,10 @@ playwright-report/
 
 # Staged review inputs (session-local)
 /tmp-feedback-2.md
+
+# Prisma — SQLite database files and generated client (F-0002)
+prisma/dev.db
+prisma/dev.db-journal
+prisma/*.db-wal
+prisma/*.db-shm
+prisma/generated/

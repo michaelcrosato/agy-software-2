@@ -14,9 +14,13 @@
     "shield": "ts-node scripts/assertion-shield.ts",
     "state": "ts-node scripts/update-state.ts",
     "state:validate": "ts-node scripts/update-state.ts --validate",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "postinstall": "prisma generate",
+    "seed": "prisma db push && tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@prisma/adapter-better-sqlite3": "^7.8.0",
+    "@prisma/client": "^7.8.0",
     "lucide-react": "^1.17.0",
     "next": "16.2.9",
     "react": "19.2.0",
@@ -32,11 +36,18 @@
     "@types/react": "19.2.0",
     "@types/react-dom": "19.2.0",
     "@vitejs/plugin-react": "^6.0.2",
+    "jsdom": "^29.1.1",
+    "prisma": "^7.8.0",
     "shellcheck": "^4.1.0",
     "tailwindcss": "4.3.0",
     "ts-node": "^10.9.2",
+    "tsx": "^4.22.4",
     "typescript": "^6.0.3",
-    "vitest": "4.1.8",
-    "jsdom": "^29.1.1"
+    "vitest": "4.1.8"
+  },
+  "allowScripts": {
+    "@prisma/engines@7.8.0": true,
+    "better-sqlite3@12.10.0": true,
+    "prisma@7.8.0": true
   }
 }
