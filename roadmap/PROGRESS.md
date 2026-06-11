@@ -1,5 +1,19 @@
 # Progress Log (newest first — prepend, never append)
 
+## 2026-06-11 — F-0002 shipped: Prisma 7 + SQLite data layer with seed fixtures (PR #15)
+
+- **What:** The app's data layer. Prisma 7.8.0 (live-verified current stable per P1 — v6 idioms are removed upstream) with the better-sqlite3 driver adapter, six core models (User, Project, Question, Answer, Source, Chunk; cascade deletes; String statuses since SQLite lacks enums), root `prisma.config.ts`, shared client singleton `src/lib/prisma.ts`, and a deterministic idempotent seed (`npm run seed` = `prisma db push && tsx prisma/seed.ts`): 3 policy sources, 15 keyword-rich chunks, 1 project, 10 questions with two near-duplicate pairs (F-0016 depends on these), 2 drafted answers, 3 teammates — all stable hardcoded IDs, all synthetic. Generated client lives at `prisma/generated/` (gitignored, rebuilt by our `postinstall`), deliberately outside `src/` so biome never lints machine output. The `seed` script name is the gate contract — it runs the logic directly and never touches `scripts/seed.ts`.
+- **Verified:** `bash scripts/verify.sh` green three times on commit 50c44ea (builder, orchestrator re-run, evaluator's independent run) — 18 tests across 2 files. Evidence in `roadmap/evidence/F-0002/` (verify.log, seed-idempotency.log, test.log, notes.md). Orchestrator spot checks beyond evidence: deleted `prisma/dev.db` and proved `npm run seed` recreates it from nothing; ran the gate shim `npx ts-node scripts/seed.ts` and proved delegation passes end to end. Evaluator: PASS. Security review: APPROVE (1 low advisory — DECISIONS dependency entry, done in this record).
+- **Surprises:** (1) npm 11's allow-scripts gate would have silently broken better-sqlite3 (no native binding) and the Prisma CLI (no engine binaries) — the brief pre-loaded `npm approve-scripts prisma @prisma/engines better-sqlite3` (pinned entries land in package.json) and the builder hit zero install issues. (2) CI `verify` went red once on a pure infra flake: the shellcheck npm package downloads its binary from GitHub releases at run time and got a 403 rate limit on the shared runner; rerun green, no code change. Kaizen candidate if it recurs: vendor or cache that binary. (3) Prisma 7 generates `// @ts-nocheck` headers, so the generated client passes `tsc --noEmit` transitively with no tsconfig changes.
+- **Next step:** `/work` F-0003 (Playwright E2E harness wired into `verify --e2e`) — both its dependencies (F-0001, F-0002) are now done. F-0004 (staging deploy) is also unblocked.
+
+## 2026-06-11 — Engine sync: seed shim hardened with recursion sentinel (PR #11)
+
+- **What:** Factory work, department-directed. `scripts/seed.ts` synced to upstream ai-operations-template commit 91b184c (our shim, upstreamed as template PR #24, came back with one hardening we lacked): a `SEED_SHIM_ACTIVE` env sentinel that fails fast on circular delegation — a product `seed` script pointing back at `scripts/seed.ts` now exits 1 with a clear message instead of looping forever in CI. Also from upstream: try/catch around the package.json read and empty-string seed scripts treated as absent. Behavior identical to upstream; only local idiom kept (F-0002 references).
+- **Verified:** gate green locally + CI green on PR #11. Manually proven: delegation tags the child with `SEED_SHIM_ACTIVE=1`; a deliberately circular seed script is refused (exit 1); product mode without a seed script still fails. Landed *before* F-0002 so the sentinel protected the very wiring F-0002 introduced.
+- **Surprises:** none.
+- **Next step:** F-0002 build (same session).
+
 ## 2026-06-11 — Daily improvement pass
 
 ### kaizen

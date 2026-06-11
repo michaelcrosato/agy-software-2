@@ -1,0 +1,36 @@
+--- seed run 1 ---
+> answerflow-ai@0.1.0 seed
+> prisma db push && tsx prisma/seed.ts
+
+Loaded Prisma config from prisma.config.ts.
+Prisma schema loaded from prisma\schema.prisma.
+Datasource "db": SQLite database "dev.db" at "file:./prisma/dev.db"
+The database is already in sync with the Prisma schema.
+[seed] Done — 3 users, 1 project, 10 questions, 2 answers, 3 sources, 15 chunks
+exit code: 0
+
+--- seed run 2 ---
+> answerflow-ai@0.1.0 seed
+> prisma db push && tsx prisma/seed.ts
+
+Loaded Prisma config from prisma.config.ts.
+Prisma schema loaded from prisma\schema.prisma.
+Datasource "db": SQLite database "dev.db" at "file:./prisma/dev.db"
+The database is already in sync with the Prisma schema.
+[seed] Done — 3 users, 1 project, 10 questions, 2 answers, 3 sources, 15 chunks
+exit code: 0
+
+--- git status --porcelain (after two seed runs) ---
+ M .gitignore
+ M package-lock.json
+ M package.json
+ M roadmap/features.json
+?? prisma.config.ts
+?? prisma/
+?? roadmap/briefs/F-0002.md
+?? src/lib/prisma.ts
+?? src/lib/seed.ts
+?? tests/seed.test.ts
+
+CONCLUSION: prisma/dev.db and prisma/generated/ are gitignored and do not appear.
+Tree is clean with respect to seeding — no db file leaks into git.
