@@ -3,9 +3,16 @@
   "features": [
     {
       "dependencies": [],
-      "status": "pending",
-      "passes": false,
-      "evidence": [],
+      "status": "done",
+      "passes": true,
+      "evidence": [
+        "roadmap/evidence/F-0001/verify.log",
+        "roadmap/evidence/F-0001/verify-pinned.log",
+        "roadmap/evidence/F-0001/verify-lockfix.log",
+        "roadmap/evidence/F-0001/build.log",
+        "roadmap/evidence/F-0001/test.log",
+        "roadmap/evidence/F-0001/notes.md"
+      ],
       "attempts": 0,
       "blocked_reason": null,
       "forbidden_paths": [
