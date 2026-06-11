@@ -57,9 +57,14 @@
       "dependencies": [
         "F-0001"
       ],
-      "status": "pending",
-      "passes": false,
-      "evidence": [],
+      "status": "done",
+      "passes": true,
+      "evidence": [
+        "roadmap/evidence/F-0002/verify.log",
+        "roadmap/evidence/F-0002/seed-idempotency.log",
+        "roadmap/evidence/F-0002/test.log",
+        "roadmap/evidence/F-0002/notes.md"
+      ],
       "attempts": 0,
       "blocked_reason": null,
       "forbidden_paths": [
@@ -85,7 +90,8 @@
         "tests/**",
         "package.json",
         "package-lock.json",
-        ".gitignore"
+        ".gitignore",
+        "prisma.config.ts"
       ],
       "priority": 1
     },
