@@ -1,0 +1,48 @@
+
+> answerflow-ai@0.1.0 e2e
+> playwright install --with-deps --only-shell chromium && playwright test
+
+
+> answerflow-ai@0.1.0 seed
+> prisma db push && tsx prisma/seed.ts
+
+Loaded Prisma config from prisma.config.ts.
+
+Prisma schema loaded from prisma\schema.prisma.
+Datasource "db": SQLite database "dev.db" at "file:./prisma/dev.db"
+
+The database is already in sync with the Prisma schema.
+
+[seed] Done — 3 users, 1 project, 10 questions, 2 answers, 3 sources, 15 chunks
+
+Running 1 test using 1 worker
+
+  x  1 [chromium] › tests\e2e\dashboard.spec.ts:3:5 › dashboard shows AnswerFlow branding and seeded project (5.3s)
+
+
+  1) [chromium] › tests\e2e\dashboard.spec.ts:3:5 › dashboard shows AnswerFlow branding and seeded project 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByText('THIS TEXT DOES NOT EXIST ON THE PAGE')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for getByText('THIS TEXT DOES NOT EXIST ON THE PAGE')[22m
+
+
+      11 |
+      12 |   // DELIBERATE FAILURE — this text will never appear; proves non-zero exit
+    > 13 |   await expect(page.getByText("THIS TEXT DOES NOT EXIST ON THE PAGE")).toBeVisible();
+         |                                                                        ^
+      14 | });
+      15 |
+        at C:\dev\agy-software-2\tests\e2e\dashboard.spec.ts:13:72
+
+    Error Context: test-results\dashboard-dashboard-shows--87bf9-branding-and-seeded-project-chromium\error-context.md
+
+  1 failed
+    [chromium] › tests\e2e\dashboard.spec.ts:3:5 › dashboard shows AnswerFlow branding and seeded project 

@@ -1,2 +1,3 @@
 {"date":"2026-06-11","feature":"F-0001","attempts":0,"evaluator":"PASS","security":"APPROVE","findings_fixed":2,"pr":7,"notes":"Next.js 16 scaffold; product mode live; deps pinned post-review; record-PR pattern established"}
 {"date":"2026-06-11","feature":"F-0002","attempts":0,"evaluator":"PASS","security":"APPROVE","findings_fixed":0,"pr":15,"notes":"Prisma 7 data layer + seed; first-try PASS; one CI rerun (shellcheck binary 403 flake, not code)"}
+{"date":"2026-06-11","feature":"F-0003","attempts":0,"evaluator":"PASS","security":"APPROVE","findings_fixed":0,"pr":17,"notes":"Playwright 1.60 harness; first-try PASS; CI red was a pre-product engine gap (e2e.yml missing actionlint), fixed via PR #18"}

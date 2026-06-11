@@ -1,0 +1,22 @@
+
+> answerflow-ai@0.1.0 e2e
+> playwright install --with-deps --only-shell chromium && playwright test
+
+
+> answerflow-ai@0.1.0 seed
+> prisma db push && tsx prisma/seed.ts
+
+Loaded Prisma config from prisma.config.ts.
+
+Prisma schema loaded from prisma\schema.prisma.
+Datasource "db": SQLite database "dev.db" at "file:./prisma/dev.db"
+
+The database is already in sync with the Prisma schema.
+
+[seed] Done — 3 users, 1 project, 10 questions, 2 answers, 3 sources, 15 chunks
+
+Running 1 test using 1 worker
+
+  ok 1 [chromium] › tests\e2e\dashboard.spec.ts:3:5 › dashboard shows AnswerFlow branding and seeded project (228ms)
+
+  1 passed (3.4s)
