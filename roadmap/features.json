@@ -100,9 +100,14 @@
         "F-0001",
         "F-0002"
       ],
-      "status": "pending",
-      "passes": false,
-      "evidence": [],
+      "status": "done",
+      "passes": true,
+      "evidence": [
+        "roadmap/evidence/F-0003/verify-e2e.log",
+        "roadmap/evidence/F-0003/e2e.log",
+        "roadmap/evidence/F-0003/e2e-deliberate-fail.log",
+        "roadmap/evidence/F-0003/notes.md"
+      ],
       "attempts": 0,
       "blocked_reason": null,
       "forbidden_paths": [
@@ -127,7 +132,10 @@
         "src/**",
         "package.json",
         "package-lock.json",
-        ".gitignore"
+        ".gitignore",
+        "vitest.config.ts",
+        "next.config.ts",
+        "next-env.d.ts"
       ],
       "priority": 1
     },
