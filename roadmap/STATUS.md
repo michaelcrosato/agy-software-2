@@ -1,23 +1,26 @@
-# Status Report — 2026-06-11 — First piece of the app is built
+# Status Report — 2026-06-11 (evening) — The app has memory and a robot tester
 
 > Auto-generated status. Written for a business reader; no jargon.
 
 ## Shipped this week
-- **The AnswerFlow app now exists.** It has its dark, modern look, the top navigation bar, and a first dashboard page. Every future change is automatically tested before it can ship. (Nothing is on the internet yet — that comes with the "test website" step below.)
-- **The factory got smarter:** a problem that slipped past local checks and failed once on GitHub yesterday is now caught on the computer in under a second, before it ever leaves the building.
-- Earlier this week: the work backlog was created from your product plan (19 cards), and work lost in the computer crash was fully recovered.
+- **The app now remembers things.** A built-in database stores projects, questions, answers, teammates, and your company's knowledge documents. It comes loaded with realistic practice data: one sample security questionnaire (10 questions) and three made-up policy documents — so every demo and test starts from the same clean state. All of it is invented data; nothing comes from any real company.
+- **A robot now tests the app like a person.** Before any change can ship, an invisible Chrome browser starts the app, opens the dashboard, and checks the right things appear on screen. We also proved the alarm works: a test that *should* fail really does stop the assembly line.
+- **The dashboard shows real content.** It now lists your projects from the database (today: the sample questionnaire with its 10 questions) instead of a static placeholder.
+- **Factory upkeep (3 small fixes):** the data-loading tool can no longer get stuck in a loop if it's ever wired up wrong; the browser-test pipeline was missing one required tool on its very first real run and now matches the main pipeline exactly; both fixes were security-reviewed.
+- Earlier this week: the app's frame (look, navigation, automated checks) and the 19-card work backlog.
 
 ## Ready for your QA
-- Nothing yet. The app frame is built, but there is no website link to click until the "test website" card is done (two cards away). When it's ready, you'll get simple click-by-click steps.
+- Nothing yet. The next card ("test website") puts the app on the internet with a link you can click; you'll get simple click-by-click steps with it. If you'd like a sneak peek on this computer today: open the project in VS Code, open a terminal, type `npm run seed`, then `npm run dev`, and visit http://localhost:3000 — you'll see the dashboard with the sample questionnaire.
 
 ## In progress
-- Nothing mid-flight right now. Next card up: the app's memory — where projects, questions, and answers are stored — plus realistic sample data to demo with.
+- Nothing mid-flight right now. Next up: the test website (the last of the four "skeleton" cards), then the review workspace and the answer-drafting engine.
 
 ## Blocked / needs you
 - **One open question (nothing is waiting on it):** where should the test website live? We suggest Fly.io (a few dollars a month, you create the account). Answer whenever convenient in the questions file — work continues meanwhile.
 
 ## Health
-- ✅ All automated checks passing — 1 of 19 backlog cards done, first try, with both independent AI reviews clean.
-- ✅ Test count: 93 automated checks now guard the project (89 factory safety checks + 4 new app tests). The app-test number grows with every card.
-- ⚠️ No test website yet (expected — it's card 4 of 19), so nothing for you to click until then.
-- 💰 Cost: normal so far — one build day, no retries or wasted runs beyond a single quickly-fixed hiccup. A real spend trend appears here once a few more cards ship.
+- ✅ All automated checks passing on the main work branch. 3 of 19 backlog cards done — every one passed on the first try, with both independent AI reviews (quality + security) clean each time.
+- ✅ Test count climbing: 108 automated checks now guard the project (89 factory safety checks, 18 app tests, 1 robot browser test) — up from 93 this morning.
+- ⚠️ Three routine dependency-update suggestions arrived from GitHub's bot today; two currently fail their checks and will be sorted out next session. This does not affect the app or any shipped work.
+- ⚠️ No test website yet (expected — it's the next card), so nothing for you to click online until then.
+- 💰 Cost: a productive day — three cards shipped plus three factory fixes, zero retries. The only waste was two brief pipeline re-runs caused by an internet hiccup and a missing pipeline tool (both fixed). Spend trend still building; will firm up after a few more days.
