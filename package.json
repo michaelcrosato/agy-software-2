@@ -16,7 +16,8 @@
     "state:validate": "ts-node scripts/update-state.ts --validate",
     "typecheck": "tsc --noEmit",
     "postinstall": "prisma generate",
-    "seed": "prisma db push && tsx prisma/seed.ts"
+    "seed": "prisma db push && tsx prisma/seed.ts",
+    "e2e": "playwright install --with-deps --only-shell chromium && playwright test"
   },
   "dependencies": {
     "@prisma/adapter-better-sqlite3": "^7.8.0",
@@ -28,6 +29,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.16",
+    "@playwright/test": "^1.60.0",
     "@tailwindcss/postcss": "4.3.0",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
