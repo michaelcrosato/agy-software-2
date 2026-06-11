@@ -1,0 +1,23 @@
+{
+  "name": "answerflow-ai",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "description": "AnswerFlow AI — B2B RFP/questionnaire answering, run by the AI operations engine",
+  "scripts": {
+    
+    "lint": "biome lint scripts",
+    "verify": "bash scripts/verify.sh",
+    "shield": "ts-node scripts/assertion-shield.ts",
+    "state": "ts-node scripts/update-state.ts",
+    "state:validate": "ts-node scripts/update-state.ts --validate",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.16",
+    "@types/node": "^25.9.2",
+    "shellcheck": "^4.1.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.3"
+  }
+}
