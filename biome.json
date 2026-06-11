@@ -14,6 +14,7 @@
       "suspicious": {
         "noRedundantUseStrict": "off"
       }
-    }
+    },
+    "includes": ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.mjs", "**/*.cjs"]
   }
 }
