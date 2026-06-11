@@ -1,5 +1,12 @@
 # Progress Log (newest first — prepend, never append)
 
+## 2026-06-11 — Daily improvement pass
+
+### kaizen
+- **Signal:** F-0001's first CI run went red because local `npm install` and CI's `npm ci` disagreed about the lockfile (missing nested optional-peer entry). Cost: one red CI round + one extra builder spawn. Nearly every upcoming feature (Prisma, Playwright, file parsers, exporters) adds dependencies, so this failure mode recurs without a fix.
+- **Change:** `scripts/verify.sh` now runs `npm ci --dry-run --no-audit --no-fund` as the first stack gate whenever a package-lock.json exists — the same sync validation CI performs, in ~0.6s, without touching node_modules. Proven both ways: green on the synced tree, and it reproduces CI's exact `Missing: <pkg> from lock file` error on a deliberately desynced package.json.
+- **Metric to move:** zero CI failures caused by lockfile desync on future dependency-touching features (check `gh run list` + metrics.jsonl notes next kaizen; baseline: 1 such failure in 1 feature shipped).
+
 ## 2026-06-11 — F-0001 shipped: Next.js scaffold under src/, product mode live (PR #7)
 
 - **What:** First product feature. AnswerFlow app scaffolded under `src/` — Next.js 16.2.9 (App Router), React 19.2.0, Tailwind 4.3.0 (CSS-first), dark theme, Navbar + dashboard placeholder, Vitest smoke tests in root `tests/`, npm scripts wired (build / test / lint incl. src). Repo is now in product mode: hard lint/test gates + placeholder scan active. Versions live-verified per P1 before install (README's "Tailwind 3" was stale). Security follow-up pinned seven `"latest"` dep specifiers to lockfile-resolved ranges.
