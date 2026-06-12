@@ -12,6 +12,7 @@ on:
         "cypress.config.*",
         "package.json",
         "package-lock.json",
+        ".github/workflows/e2e.yml",
       ]
 
 concurrency:
@@ -33,7 +34,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           # 24 matches ci.yml and the development environment — this job runs the
-          # same verify.sh gate, so the runtimes must not diverge
+          # same verify.sh gate, so the runtimes must not diverge (DECISIONS 2026-06-10)
           node-version: 24
           cache: npm
 
