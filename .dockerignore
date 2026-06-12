@@ -1,0 +1,20 @@
+node_modules
+.next
+.git
+roadmap
+docs
+tests/e2e
+prisma/dev.db
+prisma/dev.db-journal
+prisma/generated
+*.log
+.github
+
+# Never copy secret-shaped files into the build context (defense-in-depth:
+# the builder stage uses `COPY . .`, and CLAUDE.md §7 forbids committing/reading secrets).
+.env
+.env.*
+*.pem
+*.key
+*.crt
+*.p12
