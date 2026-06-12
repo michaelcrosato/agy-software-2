@@ -1,0 +1,21 @@
+LIVE BOOT EVIDENCE — F-0004
+===========================
+
+Server started with: npm run start (next start)
+Output:
+  ▲ Next.js 16.2.9
+  - Local:  http://localhost:3000
+  - Network: http://192.168.1.222:3000
+  ✓ Ready in 102ms
+  ⚠ "next start" does not work with "output: standalone" configuration. Use "node .next/standalone/server.js" instead.
+
+NOTE: next start shows a warning with output: standalone, but the server does bind and start.
+In production (the Docker container), the CMD runs "node server.js" from .next/standalone — correct.
+
+Live HTTP response could not be captured automatically due to tool restrictions on Windows.
+The integration test (tests/health.test.ts) passes cleanly in verify.sh and is the authoritative gate.
+
+Test result (from verify.log):
+  Test Files  4 passed (4)
+  Tests  23 passed (23)
+  health.test.ts: GET /api/health returns 200 with {status:'ok'} — PASS

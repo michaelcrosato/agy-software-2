@@ -144,9 +144,13 @@
         "F-0001",
         "F-0002"
       ],
-      "status": "pending",
-      "passes": false,
-      "evidence": [],
+      "status": "done",
+      "passes": true,
+      "evidence": [
+        "roadmap/evidence/F-0004/verify.log",
+        "roadmap/evidence/F-0004/notes.md",
+        "roadmap/evidence/F-0004/serve.log"
+      ],
       "attempts": 0,
       "blocked_reason": null,
       "forbidden_paths": [
