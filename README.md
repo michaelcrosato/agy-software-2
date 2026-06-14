@@ -1,150 +1,88 @@
-# AnswerFlow AI ⚡
+# AnswerFlow AI (`answerflow-ai`)
 
-AnswerFlow AI is a simpler, cheaper, AI-native platform designed to help B2B teams respond to RFPs, sales proposals, security questionnaires, and compliance forms in record time. 
+A Next.js + Prisma/SQLite **application skeleton** for a future B2B RFP / security-questionnaire answering tool. Today it is a working shell — app scaffold, data layer, deploy pipeline, and test rig — **not** the answering product its name implies. Read the [engineering review](docs/ENGINEERING_REVIEW.md) before trusting any other description of this repo.
 
-Built using modern web standards (**Next.js 16, Prisma, Tailwind CSS, and SQLite**), AnswerFlow AI replaces manual copy-pasting, scattered Google Drive search sessions, and enterprise software bloat with a streamlined local-first RAG engine, similarity clustering, collaborative reviews, and multi-format document support.
+> **Honest status (2026-06-14):** ~5% built. What works: a dark-themed dashboard that lists seeded projects, a Prisma 7 + SQLite data model with a synthetic seed, a `/api/health` probe, and a Docker + Fly.io deploy path. What does **not** exist yet: document upload, parsing, the RAG/retrieval engine, answer generation, the answer verifier, the review workspace, export, and authentication. There is no second page; two of the three nav links currently 404.
 
----
+## What it does today
 
-## ✨ Features
+- Serves a single dashboard page (`/`) that lists projects from the database with a question count, or a plain-English empty state if the DB is unreachable.
+- Ships a deterministic, idempotent **synthetic** seed (3 users, 1 project, 10 questions, 2 drafted answers, 3 policy sources, 15 text chunks) for demos and tests.
+- Exposes `GET /api/health` → `{"status":"ok"}` (DB-free liveness probe for Fly.io).
+- Builds as a standalone Next.js server and deploys to Fly.io with a volume-backed SQLite database.
 
-### 🔍 Local-First RAG Engine
-*   **BM25 + Cosine Similarity:** Integrates keyword-matching algorithms and TF-IDF Cosine Similarity for highly relevant source extraction.
-*   **Synonym-Boosted Query Expansion:** Expands common technical terms (e.g., `SSO` $\rightarrow$ `Okta, SAML, OAuth`, or `backup` $\rightarrow$ `recovery, snapshots, DR`) to maximize matching reliability.
-*   **Custom Persona & Tone Tuning:** Automatically formats draft answers based on 6 specialized communication profiles:
-    *   `Concise` (short summaries)
-    *   `Detailed` (bullet-point breakdowns)
-    *   `Yes/No` (direct answer followed by context)
-    *   `Formal` (polished B2B procurement language)
-    *   `Security` (policy-verification format)
-    *   `Plain` (simplified vocabulary)
+That's the whole application. The product vision (local RAG, multi-format ingest, answer generation with citation validation, collaborative review, original-format export) lives only as design notes — see [Roadmap & vision](#roadmap--vision).
 
-### 📂 Multi-Format Document Parsing & Intake
-*   **Knowledge Base Uploads:** Ingests standard `.txt`, `.pdf` (via `pdf-parse`), and `.docx` (via `mammoth`) documents. These are instantly sliced into vector-ready text chunks and cited as grounding evidence.
-*   **Smart Column Mapping:** Provides an interactive Column Mapper UI for spreadsheet questionnaires (`.csv`, `.xlsx`), allowing teams to map raw question texts, categories, and locations instantly.
-
-### 🤝 Collaborative Review Workspace
-*   **Teammate Invitations:** Invite subject-matter experts and assign ownership of specific sections.
-*   **Interactive Comments:** Leave context threads directly on questions to resolve technical gaps before final approval.
-*   **Similarity Clusters:** Intelligently groups repetitive questions. Features a one-click **Propagate Answer** and **Bulk Approve** workflow to instantly resolve duplicates.
-
-### 🛡️ Sensitive Claim Controls
-*   **Automatic Risk Tagging:** Identifies questions flagged with sensitive compliance categories (e.g., `Compliance` or `Legal`).
-*   **Redaction & Bypass:** Warns team members during exports if there are unapproved sensitive claims. Redacts unapproved claims automatically unless the manual administrative bypass is toggled.
-
-### 📤 Premium Export Workflows
-*   Download completed questionnaires in standard industry formats:
-    *   **Excel Spreadsheet (`.xlsx`)** (perfectly formatted sheets)
-    *   **Word Document (`.docx`)** (clean, styled paragraphs)
-    *   **Comma-Separated Values (`.csv`)**
-    *   **Structured JSON**
-
----
-
-## 🛠️ Architecture & Tech Stack
-
-```mermaid
-graph TD
-    A[User Client / UI] -->|Next.js 16 / React 19| B[API Layer Route Handlers]
-    B -->|Prisma Client| C[SQLite database dev.db]
-    B -->|Local RAG Engine| D[lib/rag.ts]
-    D -->|BM25 / Cosine RAG| C
-    B -->|Spreadsheet Engines| E[read-excel-file / write-excel-file]
-    B -->|Document Parsers| F[pdf-parse / mammoth]
-```
-
-*   **Framework:** [Next.js 16 (App Router)](https://nextjs.org/) & [React 19](https://react.dev/)
-*   **Database & ORM:** [Prisma ORM](https://www.prisma.io/) with an embedded [SQLite](https://sqlite.org/) database (`dev.db`).
-*   **Styling:** Custom modern dark theme using [Tailwind CSS 3](https://tailwindcss.com/) with Lucide React Icons.
-*   **Parsing Utilities:** `pdf-parse` (PDF extraction), `mammoth` (DOCX extraction), `docx` (Word generation), and `write-excel-file` / `read-excel-file`.
-*   **Testing Infrastructure:** [Vitest](https://vitest.dev/) for unit/RAG testing and [Playwright](https://playwright.dev/) for End-to-End browser flow integration.
-
----
-
-## 📦 Directory Structure
+## Architecture
 
 ```
-agy-software-2/
-├── app/                  # Next.js App Router (pages and API endpoints)
-│   ├── api/              # backend API routes (projects, library, parse-document, sources, users)
-│   ├── projects/         # project manager & review workspaces
-│   ├── sources/          # knowledge base management
-│   ├── library/          # approved reusable Q&A library
-│   └── team/             # teammate invitations & team directory
-├── components/           # reusable frontend UI components (Navbar, etc.)
-├── docs/                 # project axioms, target goal specs, and loops
-├── lib/                  # shared prisma client and Local RAG search engine (rag.ts)
-├── prisma/               # schema definitions and database seed scripts
-├── scripts/              # local gate validation and secure environment integrity checks
-└── tests/                # unit test suites (Vitest) & E2E integration suites (Playwright)
+Browser ──▶ Next.js 16 App Router (src/app)
+              ├─ page.tsx        async server component, reads Project via Prisma
+              ├─ api/health      static liveness probe
+              └─ layout + Navbar app shell (inline-styled, dark theme)
+                     │
+                     ▼
+            src/lib/prisma.ts   PrismaClient singleton (better-sqlite3 adapter)
+                     │
+                     ▼
+              SQLite (prisma/dev.db locally; /data/answerflow.db on Fly volume)
 ```
 
----
+- **Data model** (`prisma/schema.prisma`): `User`, `Project`, `Question`, `Answer` (1:1 to Question), `Source`, `Chunk` (n:1 to Source). Cascade deletes; statuses are free-text strings (SQLite has no enums). **Note:** `Answer`, `Source`, and `Chunk` are currently written only by the seed — no runtime code reads or produces them yet.
+- **No UI API layer:** the dashboard reads Prisma directly in the server component. The only route handler is `/api/health`.
+- **Styling:** Tailwind 4 is installed and a theme is declared in `globals.css`, but components use inline `style={{}}` with CSS variables. (Flagged as debt in the review.)
 
-## 🚀 Local Development Setup
+## Stack
 
-### 1. Prerequisites
-Ensure you have [Node.js](https://nodejs.org/) (v18+) and `npm` installed.
+- Next.js 16.2.9 (App Router) · React 19.2.0
+- Prisma 7.8.0 + SQLite via the `@prisma/adapter-better-sqlite3` driver adapter
+- Tailwind CSS 4.3.0 (CSS-first `@theme`) · `lucide-react` icons
+- TypeScript 6 · Vitest 4 (unit/integration) · Playwright 1.60 (E2E)
+- Deploy: multi-stage Docker on `node:24-bookworm-slim` → Fly.io (`answerflow-staging`)
+- License: MIT
 
-### 2. Install Dependencies
-Clone the repository and install all required modules:
+## Run / develop
+
+Requires Node 24 (matches CI and the Docker base) and npm.
+
 ```bash
-npm install
+npm install          # installs deps; postinstall runs `prisma generate`
+npm run seed         # `prisma db push` + seed prisma/dev.db with synthetic data
+npm run dev          # Next dev server on http://localhost:3000
 ```
-*(This triggers a post-install hook running `node scripts/ensure-sqlite-db.mjs` to prepare your SQLite database).*
 
-### 3. Initialize & Seed Database
-AnswerFlow AI comes pre-packaged with a rich data seeding script containing realistic SSO policies, backup procedures, GDPR details, sample questionnaires, comments, and teammates.
+Useful scripts (from `package.json`):
+
 ```bash
-npm run seed
+npm run build        # next build (standalone output)
+npm run test         # vitest run — unit + integration suites
+npm run e2e          # installs Chromium, runs Playwright against tests/e2e
+npm run lint         # biome lint over scripts + src
+npm run typecheck    # tsc --noEmit
 ```
-This runs `prisma db push` to synchronize your schema and populates `dev.db` using `prisma/seed.ts`.
 
-### 4. Run the Development Server
+The repository-wide gate (typecheck + lint + tests + engine meta-checks) is `bash scripts/verify.sh` (add `--e2e` for browser tests). This is the same gate CI runs.
+
+## Deploy
+
+Deploys to the Fly.io app **`answerflow-staging`** (`fly.toml`), single instance, scale-to-zero, with a persistent volume `answerflow_data` mounted at `/data` holding the SQLite file (`DATABASE_URL=file:/data/answerflow.db`). The image bakes a synthetic seed DB and, on first boot, copies it onto the volume if none exists. Health is checked at `/api/health`.
+
+First-time setup and the deploy/update/reset commands are documented step-by-step in **[docs/DEPLOY.md](docs/DEPLOY.md)**. Short version once `fly` is installed and you're authed:
+
 ```bash
-npm run dev
-```
-Open [http://localhost:3000](http://localhost:3000) in your browser to experience the dashboard.
-
----
-
-## 🧪 Testing and Verification
-
-To maintain systemic stability, AnswerFlow AI maintains a strict automated validation standard. All checks must remain fully green before pushes.
-
-### Run Unit & RAG Calibration Tests
-```bash
-npm run test
-```
-*(Runs Vitest. Validates synonym expansion, tone formatting, database integrations, RAG scores, and duplicates).*
-
-### Run End-to-End (E2E) Browser Tests
-```bash
-npm run test:e2e
-```
-*(Runs Playwright tests inside headless Chromium to simulate real-world CSV/PDF/DOCX uploading, RAG drafting, teammate assigning, cluster bulk actions, sensitive controls, and exports).*
-
-### TypeScript Compilation check & Linter
-```bash
-npm run typecheck
-npm run lint
+fly launch --no-deploy                         # reads fly.toml, creates the app
+fly volumes create answerflow_data --size 1 --region iad
+fly deploy                                      # build, push, run
 ```
 
----
+**Operational caveats** (see the review's Security section): SQLite-on-a-volume means single-instance only, the volume is the **only** copy of the data (no managed backups), and `prisma db push` is the only migration mechanism (unsafe for destructive schema changes). Fine for a staging demo; not production-ready for real customer data.
 
-## 🛡️ Repository Axioms & Loop Integration
-AnswerFlow AI operates on strict codebase guidelines defined in `docs/AXIOMS.md`:
-1. **Axioms are Sacred:** Never amended or bypassed except by explicit human intervention.
-2. **Keep Main Green:** Only fully validated, green code is pushed.
-3. **Preserve Every Attempt:** Archiving failed attempts for state analysis rather than hard-deleting.
-4. **Substrate Automation Integrity:** Controlled by `assert-gate-integrity.ps1` to prevent modifications to core operations scripts listed in `manifest.txt`.
+## Roadmap & vision
 
-Developed with 💜 by Michael Crosato and the Google DeepMind Antigravity Team.
+- **Engineering review (read this first):** [docs/ENGINEERING_REVIEW.md](docs/ENGINEERING_REVIEW.md) — honest assessment, file:line findings, branch analysis, ranked debt.
+- **Prioritized roadmap:** [roadmap/ROADMAP.md](roadmap/ROADMAP.md).
+- **Product vision / salvage notes:** [docs/research/answerflow-reviews/](docs/research/answerflow-reviews/) — a review of a deleted sibling repo (`claude-software-5`) that actually built the RAG/verifier/export core. The full 1,910-line product PRD (`GOAL.md`) referenced there is **not in this repo** and must be recovered from the `claude-software-5` bundle/GitHub before serious work resumes.
 
-## 🤖 Autonomous agent workflow
+## How this repo is operated
 
-AFK-capable agent sessions use dedicated root docs and scripts:
-- Read `AGENTS.md`, `GOAL.md`, `ROADMAP.md`, and `docs/ai/REPO_MAP.md` before edits.
-- Use `npm run agent:bootstrap` for first-run setup.
-- Use `npm run agent:status` for quick context and `npm run agent:check` for lint/typecheck/test/format.
-- Keep changes scoped by ticket in `tickets/TICKET*.md`.
+This is a 100%-AI-built project run by an autonomous "operations engine" (the `.claude/` config, `CLAUDE.md`, `AI_OPERATIONS_PLAN.md`, `OPERATOR_GUIDE.md`, and the `scripts/` gate/state tooling). That machinery is infrastructure for *how* features get built; it is not part of the product. If you only care about the application, look at `src/`, `prisma/`, and `tests/`.
