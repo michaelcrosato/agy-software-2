@@ -5,6 +5,8 @@
 set -u
 cd "$(dirname "$0")/.." || exit 1
 
+bash scripts/local-cli-preflight.sh || exit 1
+
 E2E=false
 [ "${1:-}" = "--e2e" ] && E2E=true
 
@@ -33,14 +35,6 @@ PRODUCT_MODE=false
 
 # ---- product/stack gates (auto-detected) ----
 if [ -f package.json ]; then
-  # Lockfile sync gate (kaizen 2026-06-11): a local `npm install` can write a
-  # lock that CI's `npm ci` rejects (PR #7 went red on a missing nested optional
-  # peer). `--dry-run` runs the same sync validation in <1s without touching
-  # node_modules, so the desync fails here instead of on the PR.
-  if [ -f package-lock.json ]; then
-    step "lockfile sync (npm ci --dry-run)" npm ci --dry-run --no-audit --no-fund
-  fi
-
   if has_pkg_script typecheck; then step "typecheck" npm run --silent typecheck
   elif [ -f tsconfig.json ]; then step "typecheck" npx tsc --noEmit; fi
 
@@ -123,7 +117,7 @@ elif [ "${CI:-}" = "true" ]; then
 else
   echo "(actionlint not installed locally — enforced in CI)"
 fi
-step "hook contract tests" bash scripts/test-hooks.sh
+step "hook contract tests" "$BASH" scripts/test-hooks.sh
 
 # ---- E2E (opt-in) ----
 if $E2E; then

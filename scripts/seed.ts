@@ -1,10 +1,6 @@
 /**
  * seed.ts — deterministic synthetic seed data for manual QA and E2E runs (plan §3, §7.1).
  *
- * verify.sh --e2e hard-codes this path, but scripts/ is guardrail surface that
- * product features never touch — so this shim delegates to the product-owned
- * `npm run seed` (defined by F-0002).
- *
  * Rules that survive any stack (apply to the delegated-to product seed script too):
  *  - Synthetic data only — never copies of live customer data (compliance boundary, plan §6.2).
  *  - Deterministic — same input every run, so QA scripts and E2E assertions can use exact values.
@@ -72,6 +68,6 @@ if (existsSync('src')) {
 
 // 4. Template mode — no product code yet; exit 0.
 console.log(
-  '[seed] template stub — no product schema yet. F-0002 defines the `seed` npm script this shim delegates to.',
+  '[seed] template stub — no product schema yet. Define a "seed" script in package.json when the data layer lands (Phase 2).',
 );
 process.exit(0);
